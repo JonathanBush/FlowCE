@@ -8,7 +8,7 @@
 # ----------------------------
 
 NAME        ?= FLOWCE
-DEBUGMODE   ?= NDEBUG
+DEBUGMODE   ?= DEBUG
 COMPRESSED  ?= NO
 ICON        ?= 
 DESCRIPTION ?= "FlowCE"
