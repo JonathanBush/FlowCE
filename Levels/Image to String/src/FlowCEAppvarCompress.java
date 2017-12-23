@@ -10,15 +10,18 @@ public class FlowCEAppvarCompress implements Compression {
     public String packToString(LinkedList<Level> pack){
         byte[] appVar;
         int numLevels = pack.size();
-        String variableName = "FLPACK01";
+        String variableName = "FLPACKRB";
+        String packName = "Rainbow Pack";
         String outputFilePath = "Pack.8xv";
+
+        String packAppVarIdentifier = "FLCE";
 
         int totalNodes = 0;
         for (Level lvl : pack) {
             totalNodes += 2 * lvl.getNodes().size();
         }
 
-        int packDataSize = 1 + 2*numLevels + totalNodes + 2;
+        int packDataSize = 1 + 2*numLevels + totalNodes + 2 + packAppVarIdentifier.length() + packName.length() + 1;
             //packDataSize = 3;
         int dataSectionSize = 2 + 2 + 1 + 8 + 1 + 1 + 2 + packDataSize;
         int appVarSize = 8 + 3 + 42 + 2 + dataSectionSize + 2;
@@ -54,14 +57,20 @@ public class FlowCEAppvarCompress implements Compression {
         System.arraycopy(variableDataLengthMinus2, 0, dataSection, 17, 2);
 
         int i = 19;
-        int j = i + numLevels;
+        System.arraycopy(packAppVarIdentifier.getBytes(StandardCharsets.US_ASCII), 0, dataSection, i, packAppVarIdentifier.length());
+        i += packAppVarIdentifier.length();
+        dataSection[i++] = (byte)(0xFF & packName.length());
+        System.arraycopy(packName.getBytes(StandardCharsets.US_ASCII), 0, dataSection, i, packName.length());
+        i += packName.length();
+        int j = i + 2*numLevels;
         //dataSection[i] = (byte)0xFF;
         //System.out.println(Arrays.toString(dataSection));
         dataSection[i] = (byte)(0xFF & numLevels);
         for (Level lvl : pack) {
             ArrayList<Integer[]> nodes = lvl.getNodes();
-            dataSection[++i] = (byte)(0xFF & 2*nodes.size() + 1);   // length of data for this level
-            dataSection[++j] = (byte)(0xFF & lvl.getDim());         // dimension of this level
+            dataSection[++i] = (byte)(0xFF & 2*nodes.size());   // length of data for this level
+            dataSection[++i] = (byte)(0xFF & lvl.getDim());
+            //dataSection[++j] = (byte)(0xFF & lvl.getDim());         // dimension of this level
 
             for(Integer[] pair : nodes){
                 for(int node : pair){
