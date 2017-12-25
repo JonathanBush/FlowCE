@@ -12,6 +12,7 @@ public class PackConverter {
 
     public static void main(String[] args){
         PackConverter converter = new PackConverter();
+
         System.out.print("Directory path: ");
         Scanner input = new Scanner(System.in);
         converter.addDirectory(new File(input.next()));
