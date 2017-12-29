@@ -9,7 +9,7 @@
 
 NAME        ?= FLOWCE
 DEBUGMODE   ?= DEBUG
-COMPRESSED  ?= NO
+COMPRESSED  ?= YES
 ICON        ?= 
 DESCRIPTION ?= "FlowCE"
 

@@ -12,7 +12,7 @@ public class FlowCEAppvarCompress implements Compression {
         int numLevels = pack.size();
         String variableName = "FLPACKRB";
         String packName = "Rainbow Pack";
-        String outputFilePath = "Pack.8xv";
+        String outputFilePath = "Rainbow.8xv";
 
         String packAppVarIdentifier = "FLCE";
 
