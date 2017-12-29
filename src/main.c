@@ -5,17 +5,16 @@
 // Description: Flow Free for the CE
 ////////////////////////////////////////
 
-/* Keep these headers */
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <tice.h>
-/* Standard headers - it's recommended to leave them included */
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-/* Other available headers: stdarg.h, setjmp.h, assert.h, ctype.h, float.h, iso646.h, limits.h, errno.h */
+
 #include <graphx.h>
 #include <keypadc.h>
 #include <fileioc.h>
@@ -27,7 +26,6 @@
 #define BORDER_SIZE (240)
 #define BOARD_SIZE (BORDER_SIZE - 2)
 #define PACK_SELECT_SPACING (18)
-
 
 typedef struct flow_pack_t {
     char name[20];
@@ -46,9 +44,9 @@ typedef struct flow_level_t {
     
 /* function prototypes */
 void displayTitleScreen(void);
-flow_pack_t * loadPack(char *appvarName);
-flow_pack_t * selectLevelPack();
-flow_level_t * loadLevel(flow_pack_t *pack, uint8_t number);
+flow_pack_t *loadPack(char *appvarName);
+flow_pack_t *selectLevelPack();
+flow_level_t *loadLevel(flow_pack_t *pack, uint8_t number);
 uint8_t selectLevel(flow_pack_t *pack);
 uint8_t playLevel(flow_level_t *level);
 
@@ -56,12 +54,12 @@ void main(void) {
     uint8_t i, j, levelNum;
     flow_pack_t *selected;
     flow_level_t *level;
-    /* This function cleans up the screen and gets everything ready for the OS */
-    pgrm_CleanUp();
-    gfx_Begin( gfx_8bpp );
-    //gfx_SetMonospaceFont(false);
-    gfx_SetPalette(flow_gfx_pal, 288, 0);   // Use the custom colors
-    // Do all the stuff here
+    
+    gfx_Begin();
+    
+    // Use the custom colors
+    gfx_SetPalette(flow_gfx_pal, sizeof(flow_gfx_pal), 0);
+
     //srand(rtc_Time());
     displayTitleScreen();
     selected = selectLevelPack();
@@ -80,13 +78,11 @@ void main(void) {
     }
     delay(1500);
     
-    
     while(!kb_AnyKey());
     free(selected->levelDimensions);
     free(selected->levelSizes);
     free(selected);
     gfx_End();
-    pgrm_CleanUp();
 }
 
 void displayTitleScreen() {
@@ -115,29 +111,28 @@ flow_pack_t * loadPack(char *appvarName) {
     uint8_t i;
     flow_pack_t *pack;
     ti_var_t packVar; 
-    
+
     ti_CloseAll();
     dbg_sprintf(dbgout, "here1");
     packVar = ti_Open(appvarName, "r");
     dbg_sprintf(dbgout, "varname: %s\n", appvarName);
 
-    
     if (!packVar) {
         dbg_sprintf(dbgout, "Appvar not opened\n");
         return NULL;
     }
-    pack = (flow_pack_t *)malloc(sizeof(flow_pack_t));
-    
+    pack = (flow_pack_t*)malloc(sizeof(flow_pack_t));
+
     ti_Seek(4, SEEK_SET, packVar);    // skip the identifier
     ti_Read(&nameLength, 1, 1, packVar);
     ti_Read(pack->name, nameLength, 1, packVar);
     pack->name[nameLength] = '\0';
     ti_Read(&(pack->numLevels), 1, 1, packVar);
-    
+
     dbg_sprintf(dbgout, "Pack name length: %d\n", nameLength);
     dbg_sprintf(dbgout, "Pack name: %s\n", pack->name);
     strcpy(pack->appvarName, appvarName);
-    
+
     pack->levelSizes = malloc((size_t)pack->numLevels);
     pack->levelDimensions = malloc((size_t)pack->numLevels);
 
@@ -184,9 +179,8 @@ flow_pack_t * selectLevelPack() {
             ++numPacks;
             ti_CloseAll();
         }
-        
     }
-    
+
     if (numPacks) {
         do {
             kb_Scan();
@@ -210,9 +204,8 @@ flow_pack_t * selectLevelPack() {
                 }
                 gfx_SetColor(FL_WHITE);
                 gfx_Rectangle_NoClip(5, selection*PACK_SELECT_SPACING + 5, 120, PACK_SELECT_SPACING);
-                
             }
-            
+
         } while (kb_Data[1] != kb_2nd && kb_Data[6] != kb_Enter);
     } else {
         gfx_PrintStringXY("No packs available", 10, 10);
@@ -275,11 +268,10 @@ uint8_t selectLevel(flow_pack_t *pack) {
     gfx_SetTextScale(1, 1);
     //gfx_SetColor(FL_WHITE);
     
-    
     gfx_Blit(gfx_buffer);
     
     selection = 0;
-    while(kb_AnyKey());
+    while (kb_AnyKey());
     
     dbg_sprintf(dbgout, "Starting selection\n");
     do {
@@ -335,15 +327,19 @@ uint8_t selectLevel(flow_pack_t *pack) {
 }
 
 void drawNodes(flow_level_t *level) {
-    uint8_t i;
-    for (i = 0; i < level->dim * level->dim; ++i) {
-        if (level->board[i]) {
-            dbg_sprintf(dbgout, "Node %d\n", level->board[i]);
-            gfx_SetColor(level->board[i]);
+    uint8_t i, dim = level->dim;
+    
+    for (i = 0; i < dim * dim; ++i) {
+        uint8_t bz = BOARD_SIZE / (2 * dim);
+        uint8_t node = level->board[i];
+        
+        if (node) {
+            dbg_sprintf(dbgout, "Node %u\n", node);
+            gfx_SetColor(node);
             gfx_FillCircle_NoClip(
-                ((BOARD_SIZE) / (2 * level->dim)) + (((i % level->dim) * (BOARD_SIZE)) / level->dim),
-                ((BOARD_SIZE) / (2 * level->dim)) + (((i / level->dim) * (BOARD_SIZE)) / level->dim),
-                (BOARD_SIZE) / (2 * level->dim) - 1
+                bz + (((i % dim) * BOARD_SIZE) / dim),
+                bz + (((i / dim) * BOARD_SIZE) / dim),
+                bz - 1
             );
         }
     }
@@ -356,12 +352,10 @@ uint8_t playLevel(flow_level_t *level) {
     gfx_SetTextFGColor(FL_WHITE);
     gfx_SetTextScale(1, 1);
     gfx_SetColor(FL_WHITE);
-    
+
     drawNodes(level);
-    
+
     gfx_Blit(gfx_buffer);
-    
+
     return 0;
-    
 }
-    

@@ -1,5 +1,5 @@
-/* Your code here */
-#include </lib/ce/graphx.h>
+#include <graphx.h>
+#include <stdint.h>
 
 uint16_t flow_gfx_pal[18] = {
     gfx_RGBTo1555(1,4,0),       // 0 Black
