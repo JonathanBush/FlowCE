@@ -15,7 +15,7 @@
 #define FL_NAVY_BLUE	14
 #define FL_TURQUOISE	15
 #define FL_PINK			16
-#define FL_BORDER_BROWN	17
+#define FL_BORDER_COLOR	17
+#define FL_CURSOR_COLOR 18
 
-extern uint16_t flow_gfx_pal[18];
-
+extern uint16_t flow_gfx_pal[19];

@@ -1,7 +1,7 @@
 #include <graphx.h>
 #include <stdint.h>
 
-uint16_t flow_gfx_pal[18] = {
+uint16_t flow_gfx_pal[19] = {
     gfx_RGBTo1555(1,4,0),       // 0 Black
     gfx_RGBTo1555(255,0,0),     // 1 Red
     gfx_RGBTo1555(7,128,2),     // 2 Green
@@ -19,5 +19,6 @@ uint16_t flow_gfx_pal[18] = {
     gfx_RGBTo1555(3,0,140),     // 14 Navy blue
     gfx_RGBTo1555(0,129,128),   // 15 Turquoise
     gfx_RGBTo1555(255,1,146),   // 16 Pink  
-    gfx_RGBTo1555(125,95,62)    // 17 Border brown
+    gfx_RGBTo1555(125,95,62),   // 17 Border color (brown)
+    gfx_RGBTo1555(60,60,60),    // 18 Cursor color (dark gray)
 };

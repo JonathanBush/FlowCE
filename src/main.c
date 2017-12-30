@@ -33,7 +33,7 @@ typedef struct flow_pack_t {
     uint8_t levelOffset;
     uint8_t numLevels;
     uint8_t *levelDimensions;    // dimensions of level board
-    uint8_t *levelSizes;        // lengths of level data in bytes
+    uint8_t *levelSizes;         // lengths of level data in bytes
 } flow_pack_t;
 
 typedef struct flow_level_t {
@@ -49,6 +49,10 @@ flow_pack_t *selectLevelPack();
 flow_level_t *loadLevel(flow_pack_t *pack, uint8_t number);
 uint8_t selectLevel(flow_pack_t *pack);
 uint8_t playLevel(flow_level_t *level);
+void drawNodes(flow_level_t *level);
+void drawPipe(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t radius);
+void drawCursor(uint8_t x, uint8_t y, uint8_t dim);
+void fillCursor(uint8_t x, uint8_t y, uint8_t dim, uint8_t color);
 
 void main(void) {
     uint8_t i, j, levelNum;
@@ -65,14 +69,14 @@ void main(void) {
     selected = selectLevelPack();
     
     if (selected != NULL) {
-        dbg_sprintf(dbgout, "Selected pack: %s", selected->name);
+        dbg_sprintf(dbgout, "Selected pack: %s\n", selected->name);
         levelNum = selectLevel(selected);
         level = loadLevel(selected, levelNum);
         playLevel(level);
         free(level->board);
         free(level);
     
-    //displayTitleScreen();
+
     } else {
         dbg_sprintf(dbgout, "No packs\n");
     }
@@ -87,9 +91,8 @@ void main(void) {
 
 void displayTitleScreen() {
     uint8_t xPos, yPos, i;
-    const uint8_t colors[10] = {FL_RED,FL_GREEN,FL_BLUE,FL_YELLOW,FL_WHITE,FL_WHITE};
+    const uint8_t colors[6] = {FL_RED,FL_GREEN,FL_BLUE,FL_YELLOW,FL_WHITE,FL_WHITE};
     const char title[] = "FlowCE";
-    char single[2];
 
     gfx_FillScreen(FL_BLACK);
     gfx_SetTextScale(3, 5);
@@ -97,8 +100,8 @@ void displayTitleScreen() {
     yPos = (LCD_HEIGHT - 8*5) / 2 - 4*5;
     for(i = 0; i < strlen(title); i++) {
         gfx_SetTextFGColor(colors[i]);
-        sprintf(single, "%c", title[i]);
-        gfx_PrintStringXY(single, xPos, yPos);
+        gfx_SetTextXY(xPos, yPos);
+        gfx_PrintChar(title[i]);
         xPos += gfx_GetCharWidth(title[i]);
     }
     
@@ -113,7 +116,7 @@ flow_pack_t * loadPack(char *appvarName) {
     ti_var_t packVar; 
 
     ti_CloseAll();
-    dbg_sprintf(dbgout, "here1");
+    
     packVar = ti_Open(appvarName, "r");
     dbg_sprintf(dbgout, "varname: %s\n", appvarName);
 
@@ -166,7 +169,6 @@ flow_pack_t * selectLevelPack() {
     
     ti_CloseAll();
     while ((var_name = ti_Detect(&search_pos, search_string)) != NULL) {
-        dbg_sprintf(dbgout, "here2");
         
         packVar = ti_Open(var_name, "r");
         if (packVar != NULL) {
@@ -231,7 +233,7 @@ flow_level_t * loadLevel(flow_pack_t *pack, uint8_t number) {
     uint16_t offset;
     
     if (packVar == NULL) {
-        dbg_sprintf(dbgout, "Could not open \"%s\"", pack->appvarName);
+        dbg_sprintf(dbgout, "Could not open \"%s\"\n", pack->appvarName);
     }
 
     
@@ -262,6 +264,7 @@ uint8_t selectLevel(flow_pack_t *pack) {
     uint8_t i;
     char levelText[4];
     kb_key_t key = 0xF0;
+    
     gfx_SetDrawBuffer();
     gfx_FillScreen(FL_BLACK);
     gfx_SetTextFGColor(FL_WHITE);
@@ -308,7 +311,7 @@ uint8_t selectLevel(flow_pack_t *pack) {
                 gfx_Line_NoClip(1, i, BOARD_SIZE, i);
                 gfx_Line_NoClip(i, 1, i, BOARD_SIZE);
             }
-            dbg_sprintf(dbgout, "bound: %d", ((25 * (selection / 25) + 25 < pack->numLevels) ? 25 * (selection / 25) + 25 : pack->numLevels));
+            //dbg_sprintf(dbgout, "bound: %d", ((25 * (selection / 25) + 25 < pack->numLevels) ? 25 * (selection / 25) + 25 : pack->numLevels));
             for (i = 25 * (selection / 25);
                     i < ((25 * (selection / 25) + 25 < pack->numLevels) ? 25 * (selection / 25) + 25 : pack->numLevels);
                     ++i) {
@@ -318,7 +321,7 @@ uint8_t selectLevel(flow_pack_t *pack) {
                 //dbg_sprintf(dbgout, " %d", i);
             }
             gfx_SwapDraw();
-            dbg_sprintf(dbgout, "Selection: %d\n", selection);
+            //dbg_sprintf(dbgout, "Selection: %d\n", selection);
         }
     } while (kb_Data[1] != kb_2nd);
     
@@ -339,7 +342,7 @@ void drawNodes(flow_level_t *level) {
             gfx_FillCircle_NoClip(
                 bz + (((i % dim) * BOARD_SIZE) / dim),
                 bz + (((i / dim) * BOARD_SIZE) / dim),
-                bz - 1
+                (3 * bz) / 4
             );
         }
     }
@@ -347,15 +350,162 @@ void drawNodes(flow_level_t *level) {
 
 /* return 0 if incomplete, 1 if complete, 2 if perfect */
 uint8_t playLevel(flow_level_t *level) {
+    uint8_t i, x, y, x0, y0;
+    uint8_t boardSize, exit, selection;
+    uint16_t board[14][14];
+    uint8_t dim = level->dim;
+    uint8_t bz = BOARD_SIZE / (2 * dim);
+    kb_key_t key;
+    
     gfx_SetDrawBuffer();
     gfx_FillScreen(FL_BLACK);
     gfx_SetTextFGColor(FL_WHITE);
     gfx_SetTextScale(1, 1);
-    gfx_SetColor(FL_WHITE);
+    gfx_SetColor(FL_BORDER_COLOR);
+    
+    for (i = 0; i <= level->dim; ++i) {
+        uint8_t pos = (i * BOARD_SIZE) / level->dim;
+        gfx_Line_NoClip(0, pos, BOARD_SIZE, pos);
+        gfx_Line_NoClip(pos, 0, pos, BOARD_SIZE);
+    }
+    for (x = 0; x < dim; ++x) {
+        for (y = 0; y < dim; ++y) {
+            board[x][y] = level->board[x + y * dim];
+        }
+    }
+    x = y = 0;
+    selection = 0;
 
     drawNodes(level);
+    
+    while(kb_AnyKey());
+    
+    // game loop:
+    exit = 0;
+    fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
+    do {
+        //gfx_SetColor(FL_BORDER_COLOR);
+        //drawCursor(x, y, level->dim);
+        
+        gfx_Blit(gfx_buffer);
+        
+        
+        do {
+            kb_Scan();
+        } while (
+                !kb_Data[7] &&
+                kb_Data[6] != kb_Clear &&
+                kb_Data[6] != kb_Enter &&
+                kb_Data[1] != kb_2nd
+            );
+            
+        dbg_sprintf(dbgout, "Key pressed\n");    
+        if (kb_Data[6] == kb_Clear) {
+            // quit button pressed
+            exit = 1;
+            continue;
+        } else if (kb_Data[6] == kb_Enter || kb_Data[1] == kb_2nd) {
+            // selection button pressed
+            if (selection) {
+                selection = 0;
+            } else {
+                selection = board[x][y] & 0xFF;
+            }
+            dbg_sprintf(dbgout, "Selection: %d\n", selection);
+        } else if (kb_Data[7]) {
+            // arrow key pressed
+            fillCursor(x, y, level->dim, FL_BLACK);
+            x0 = x;
+            y0 = y;
+            switch (kb_Data[7]) {
+                case kb_Left:
+                    x -= (x > 0);
+                    break;
+                case kb_Right:
+                    x += (x + 1 < level->dim);
+                    break;
+                case kb_Up:
+                    y -= (y > 0);
+                    break;
+                case kb_Down:
+                    y += (y + 1 < level->dim);
+                    break;
+                default:
+                    break;
+            }
+            
+            if ((x0 != x || y0 != y) && selection) {
+                gfx_SetColor(selection);
+                drawPipe(
+                    (x0 * BOARD_SIZE) / dim + bz,
+                    (y0 * BOARD_SIZE) / dim + bz,
+                    (x  * BOARD_SIZE) / dim + bz,
+                    (y  * BOARD_SIZE) / dim + bz, 
+                    BOARD_SIZE / (6 * dim)
+                    );
+                board[x][y] = (board[x0][y0] & 0xFF) | ((((board[x0][y0] & 0xFF00) >> 8) + 1) << 8);
+            }
+            fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
+        }
+        
+        //gfx_SetColor(FL_BLACK);
+        //drawCursor(x, y, level->dim);
+        
+        while (kb_AnyKey());
+        
+    } while (!exit);
+
+    gfx_SetColor(FL_BORDER_COLOR);
+    
+    
 
     gfx_Blit(gfx_buffer);
 
     return 0;
 }
+
+/* draw a pipe segment from (x0, y0) to (x1, y1) */
+void drawPipe(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t radius) {
+    gfx_FillCircle_NoClip(x0, y0, radius);
+    gfx_FillCircle_NoClip(x1, y1, radius);
+    if (x0 == x1) {
+        if (y0 < y1) {
+            gfx_FillRectangle_NoClip(x0 - (radius), y0, radius * 2 + 1, y1 - y0);
+        } else {
+            gfx_FillRectangle_NoClip(x0 - (radius), y1, radius * 2 + 1, y0 - y1);
+        }
+    } else {
+        if (x0 < x1) {
+            gfx_FillRectangle_NoClip(x0, y0 - (radius), x1 - x0, radius * 2 + 1);
+        } else {
+            gfx_FillRectangle_NoClip(x1, y0 - (radius), x0 - x1, radius * 2 + 1);
+        }
+    }
+}
+
+void drawCursor(uint8_t x, uint8_t y, uint8_t dim) {
+    uint8_t x0, x1, x2, x3,
+            y0, y1, y2, y3,
+            length;
+    x0 = (x * BOARD_SIZE) / dim + 1;
+    y0 = (y * BOARD_SIZE) / dim + 1;
+    x1 = ((x + 1) * BOARD_SIZE) / dim - 1;
+    y1 = ((y + 1) * BOARD_SIZE) / dim - 1;
+    length = BOARD_SIZE / (5 * dim);
+    x2 = x0 + length;
+    y2 = y0 + length;
+    x3 = x1 - length;
+    y3 = y1 - length;
+    
+    gfx_Line_NoClip(x0, y0, x2, y2);
+    gfx_Line_NoClip(x1, y0, x3, y2);
+    gfx_Line_NoClip(x1, y1, x3, y3);
+    gfx_Line_NoClip(x0, y1, x2, y3);
+}
+
+void fillCursor(uint8_t x, uint8_t y, uint8_t dim, uint8_t color) {
+    uint8_t x0 = (x * BOARD_SIZE) / dim + 1;
+    uint8_t y0 = (y * BOARD_SIZE) / dim + 1;
+    gfx_FloodFill(x0, y0, color);
+}
+        
