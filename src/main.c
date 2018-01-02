@@ -41,7 +41,10 @@ typedef struct flow_pack_t {
 } flow_pack_t;
 
 typedef struct flow_level_t {
+    uint8_t number;
     uint8_t dim;
+    uint8_t flows;
+    uint8_t pipe;
     uint8_t *board; //length of dim*dim
 } flow_level_t;
 
@@ -57,7 +60,9 @@ void drawNodes(flow_level_t *level);
 void drawPipe(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t radius);
 void drawCursor(uint8_t x, uint8_t y, uint8_t dim);
 void fillCursor(uint8_t x, uint8_t y, uint8_t dim, uint8_t color);
-void erasePipe(uint8_t x0, uint8_t y0, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], uint8_t dim);
+void erasePipe(uint8_t x0, uint8_t y0, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], flow_level_t *level);
+void erasePipeFrom(uint16_t key, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], flow_level_t *level);
+
 
 void main(void) {
     uint8_t i, j, levelNum;
@@ -258,6 +263,9 @@ flow_level_t * loadLevel(flow_pack_t *pack, uint8_t number) {
         level->board[node] = color;
         dbg_sprintf(dbgout, "Read node color %d at %d\n", color, node);
     }
+    level->flows = pack->levelSizes[number] / 2;
+    level->pipe  = level->dim * level->dim - level->flows;
+    level->number = number;
     
     ti_CloseAll();
     
@@ -328,7 +336,7 @@ uint8_t selectLevel(flow_pack_t *pack) {
             gfx_SwapDraw();
             //dbg_sprintf(dbgout, "Selection: %d\n", selection);
         }
-    } while (kb_Data[1] != kb_2nd);
+    } while (kb_Data[1] != kb_2nd && kb_Data[6] != kb_Enter);
     
     gfx_SetDrawScreen();
     return selection;
@@ -353,6 +361,8 @@ void drawNodes(flow_level_t *level) {
     }
 }
 
+uint8_t pipeComplete;
+
 /* return 0 if incomplete, 1 if complete, 2 if perfect */
 uint8_t playLevel(flow_level_t *level) {
     uint8_t i, x, y, x0, y0;
@@ -360,6 +370,12 @@ uint8_t playLevel(flow_level_t *level) {
     uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION];
     uint8_t dim = level->dim;
     kb_key_t key;
+    uint16_t movesMade = 0;
+    uint8_t flowsComplete = 0;
+    uint8_t colorsComplete[20];
+    char text[20];
+    static const uint8_t statusX = 244;
+    pipeComplete = 0;
     
     gfx_SetDrawBuffer();
     gfx_FillScreen(FL_BLACK);
@@ -375,10 +391,24 @@ uint8_t playLevel(flow_level_t *level) {
     for (x = 0; x < dim; ++x) {
         for (y = 0; y < dim; ++y) {
             board[x][y] = level->board[x + y * dim];
+            if (board[x][y]) {
+                colorsComplete[board[x][y]] = 0;
+                board[x][y] |= 0x0100;
+            }
         }
     }
     x = y = 0;
     selection = 0;
+    
+    gfx_SetTextFGColor(FL_WHITE);
+    
+    gfx_SetTextScale(1, 1);
+
+    sprintf(text, "level %u", level->number + 1);
+    gfx_PrintStringXY(text, statusX, 10);
+    sprintf(text, "%ux%u", dim, dim);
+    gfx_PrintStringXY(text, statusX, 20);
+
 
     drawNodes(level);
     
@@ -388,12 +418,18 @@ uint8_t playLevel(flow_level_t *level) {
     exit = 0;
     fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
     do {
-        //gfx_SetColor(FL_BORDER_COLOR);
-        //drawCursor(x, y, level->dim);
+        gfx_SetColor(FL_BLACK);
+        gfx_FillRectangle_NoClip(statusX, 40, 319 - statusX, 60);
+        sprintf(text, "flows %u/%u", flowsComplete, level->flows);
+        gfx_PrintStringXY(text, statusX, 40);
+        sprintf(text, "moves %u", movesMade);
+        gfx_PrintStringXY(text, statusX, 50);
+        sprintf(text, "pipe %u%%", (100 * pipeComplete) / level->pipe);
+        gfx_PrintStringXY(text, statusX, 60);
         
         gfx_Blit(gfx_buffer);
-        
-        
+        dbg_sprintf(dbgout, "Pipe complete: %u", pipeComplete);
+            
         do {
             kb_Scan();
         } while (
@@ -413,36 +449,44 @@ uint8_t playLevel(flow_level_t *level) {
             if (selection) {
                 selection = 0;
             } else if (board[x][y]) {
+                ++movesMade;
                 selection = board[x][y] & 0x00FF;
-                if ((board[x][y] & 0xFF00) == 0x00) {  // this is the first node
-                dbg_sprintf(dbgout, "First node selected\n");
-                    board[x][y] |= 0x0100;
+                if (colorsComplete[selection]) {
+                    colorsComplete[selection] = 0;
+                    --flowsComplete;
+                }
+                if ((board[x][y] & 0xFF00) == 0x0100) {  // this is the first node
+                    dbg_sprintf(dbgout, "First node selected\n");
+                    erasePipe(x, y, board, level);
                     for (x0 = 0; x0 < dim; ++x0) {
                         for (y0 = 0; y0 < dim; ++y0) {
-                            if (board[x0][y0] == selection) { // this is the other node
-                                board[x0][y0] |= 0xFF00;
+                            if ((x != x0 || y != y0) && board[x0][y0] == (0x0100 | selection)) { // this is the other node
+                                board[x0][y0] &= 0x00FF;
                                 x0 = 250;
                                 break;
                             }
                         }
                     }
-                } else if ((board[x][y] & 0xFF00) == 0xFF00) {  // the wrong node was selected
+                    
+                } else if ((board[x][y] & 0xFF00) != 0x0100 && level->board[x+dim*y]) {  // the wrong node was selected
                     dbg_sprintf(dbgout, "Wrong node selected\n");
                     for (x0 = 0; x0 < dim; ++x0) {
                         for (y0 = 0; y0 < dim; ++y0) { // find the first node
                             if (board[x0][y0] == (0x0100 | selection)) {
-                                erasePipe(x0, y0, board, dim);
-                                drawNodes(level);
-                                board[x0][y0] = 0xFF00 | selection;
+                                erasePipe(x0, y0, board, level);
+                                board[x0][y0] = selection;
                                 x0 = 250;
                                 break;
                             }
                         }
                     }
                     board[x][y] = 0x0100 | selection;
+                } else {
+                    erasePipeFrom(board[x][y], board, level);
                 }
+                fillCursor(x, y, level->dim, FL_BLACK);
+                fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
             }
-            
             
             dbg_sprintf(dbgout, "Selection: %d\n", selection);
         } else if (kb_Data[7]) {
@@ -467,17 +511,45 @@ uint8_t playLevel(flow_level_t *level) {
                 default:
                     break;
             }
-            
+            dbg_sprintf(dbgout, "Moved to (%d, %d), cell value=%x\n", x, y, board[x][y]);
             if ((x0 != x || y0 != y) && selection) {
                 gfx_SetColor(selection);
                 if (!board[x][y]) { // nothing there yet
-                    dbg_sprintf(dbgout, "Moved to (%d, %d)\n", x, y);
+                    ++pipeComplete;
                     drawPipe(x0, y0, x, y, dim);
-                    board[x][y] = selection | ((((board[x0][y0] & 0xFF00) >> 8) + 1) << 8);
-                } else if (board[x][y] & 0xFF == selection) { // this color already there
+                    board[x][y] = board[x0][y0] + 0x0100;
+                } else if ((board[x][y] & 0x00FF) == selection) { // this color already there
+                    if ((board[x][y] & 0xFF00) == 0x00) {   // this is the end node
+                        dbg_sprintf(dbgout, "connected to end node\n");
+                        colorsComplete[selection] = 1;
+                        ++flowsComplete;
+                        ++pipeComplete;
+                        board[x][y] = board[x0][y0] + 0x0100;
+                        drawPipe(x0, y0, x, y, dim);
+                        selection = 0;
+                    } else {
+                        dbg_sprintf(dbgout, "collided with own pipe\n");
+                        erasePipeFrom(board[x][y], board, level);
+                    }
                 
                 } else { // some other color already there
-                
+                    if (level->board[x+dim*y]) {
+                        // colliding with node of another color
+                        x = x0; // roll back
+                        y = y0;
+                    } else {
+                        // colliding with pipe of another color
+                        if (colorsComplete[0xFF & board[x][y]]) {
+                            colorsComplete[0xFF & board[x][y]] = 0;
+                            --flowsComplete;
+                        }
+                        erasePipeFrom(board[x][y] - 0x0100, board, level);
+                        gfx_SetColor(selection);
+                        ++pipeComplete;
+                        drawPipe(x0, y0, x, y, dim);
+                        board[x][y] = board[x0][y0] + 0x0100;
+                    }
+                        
                 }
                 
                 
@@ -493,8 +565,6 @@ uint8_t playLevel(flow_level_t *level) {
     } while (!exit);
 
     gfx_SetColor(FL_BORDER_COLOR);
-    
-    
 
     gfx_Blit(gfx_buffer);
 
@@ -515,15 +585,15 @@ void drawPipe(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t dim) {
     gfx_FillCircle_NoClip(x1, y1, radius);
     if (x0 == x1) {
         if (y0 < y1) {
-            gfx_FillRectangle_NoClip(x0 - (radius), y0, radius * 2 + 1, y1 - y0);
+            gfx_FillRectangle_NoClip(x0 - radius, y0, radius * 2 + 1, y1 - y0);
         } else {
-            gfx_FillRectangle_NoClip(x0 - (radius), y1, radius * 2 + 1, y0 - y1);
+            gfx_FillRectangle_NoClip(x0 - radius, y1, radius * 2 + 1, y0 - y1);
         }
     } else {
         if (x0 < x1) {
-            gfx_FillRectangle_NoClip(x0, y0 - (radius), x1 - x0, radius * 2 + 1);
+            gfx_FillRectangle_NoClip(x0, y0 - radius, x1 - x0, radius * 2 + 1);
         } else {
-            gfx_FillRectangle_NoClip(x1, y0 - (radius), x0 - x1, radius * 2 + 1);
+            gfx_FillRectangle_NoClip(x1, y0 - radius, x0 - x1, radius * 2 + 1);
         }
     }
 }
@@ -551,27 +621,65 @@ void drawCursor(uint8_t x, uint8_t y, uint8_t dim) {
 void fillCursor(uint8_t x, uint8_t y, uint8_t dim, uint8_t color) {
     uint8_t x0 = (x * BOARD_SIZE) / dim + 1;
     uint8_t y0 = (y * BOARD_SIZE) / dim + 1;
+    uint8_t x1 = ((x + 1) * BOARD_SIZE) / dim - 1;
+    uint8_t y1 = ((y + 1) * BOARD_SIZE) / dim - 1;
     gfx_FloodFill(x0, y0, color);
+    if (gfx_GetPixel(x1, y0) != color) {
+        gfx_FloodFill(x1, y0, color);
+    }
+    if (gfx_GetPixel(x1, y1) != color) {
+        gfx_FloodFill(x1, y1, color);
+    }
+    if (gfx_GetPixel(x0, y1) != color) {
+        gfx_FloodFill(x0, y1, color);
+    }
+}
+
+void erasePipeFrom(uint16_t key, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], flow_level_t *level) {
+    uint8_t x, y;
+    for (x = 0; x < level->dim; ++x) {
+        for (y = 0; y < level->dim; ++y) {
+            if (board[x][y] == key) {
+                uint8_t bz = BOARD_SIZE / (2 * level->dim);
+                
+                erasePipe(x, y, board, level);
+                gfx_SetColor(key & 0x00FF);
+    
+                x = (x * BOARD_SIZE) / level->dim + bz;
+                y = (y * BOARD_SIZE) / level->dim + bz;
+                //gfx_FillCircle_NoClip(x, y, BOARD_SIZE / (6 * dim));
+                
+                x = MAX_BOARD_DIMENSION;
+                break;
+            }
+        }
+    }
 }
         
-void erasePipe(uint8_t x, uint8_t y, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], uint8_t dim) {
+void erasePipe(uint8_t x, uint8_t y, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], flow_level_t *level) {
     uint8_t x1, y1, exit;
+    uint8_t x0 = x;
+    uint8_t y0 = y;
+    uint8_t dim = level->dim;
     uint8_t color = board[x][y] & 0x00FF;
     uint16_t count = board[x][y] & 0xFF00;
     
     x1 = x;
     y1 = y;
-    dbg_sprintf(dbgout, "erasePipe(%d, %d,...); count=%u, color=%u\n", x, y, count, color);
+    dbg_sprintf(dbgout, "erasePipe(%d, %d,...); count=%x, color=%x\n", x, y, count, color);
     for (exit = 1; exit;) {
-        count = (1 + (count >> 8)) << 8;
+        uint16_t key, end;
+        count += 0x0100;
+        key =  count | color;
+        end = 0xFF00 | color;
    
-        if        (x+1 < dim && board[x+1][y] == (count | color)) {
+        if        (x+1 < dim && board[x+1][y] == key) {
             ++x1;
-        } else if (y+1 < dim && board[x][y+1] == (count | color)) {
+        } else if (y+1 < dim && board[x][y+1] == key) {
             ++y1;
-        } else if (x-1 >= 0  && board[x-1][y] == (count | color)) {
+        } else if (x-1 >= 0  && board[x-1][y] == key) {
             --x1;
-        } else if (y-1 >= 0  && board[x][y-1] == (count | color)) {
+        } else if (y-1 >= 0  && board[x][y-1] == key) {
             --y1;
         }
         if (x1 != x || y1 != y) {
@@ -579,6 +687,7 @@ void erasePipe(uint8_t x, uint8_t y, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOA
             uint8_t yMax = max(y, y1);
             gfx_SetColor(FL_BLACK);
             drawPipe(x, y, x1, y1, dim);    // erase the pipe
+            --pipeComplete;
             dbg_sprintf(dbgout, "Erased segment from (%d, %d) to (%d, %d)\n", x, y, x1, y1);
             gfx_SetColor(FL_BORDER_COLOR);
             if (x != x1) {  // movement in the x direction
@@ -592,12 +701,32 @@ void erasePipe(uint8_t x, uint8_t y, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOA
                 xMax = ((xMax + 1) * BOARD_SIZE) / dim;
                 gfx_Line_NoClip(xLeft, yMax, xMax, yMax);
             }
-            board[x1][y1] = 0;  // remove from the board
+            if (!level->board[x1+dim*y1]) {
+                board[x1][y1] = 0;  // remove from the board
+            } else {
+                board[x1][y1] &= 0x00FF;
+            }
             x = x1;
             y = y1;
         } else {
+            if ((board[x0][y0] & 0xFF00) > 0x0100) {
+                x = x0;
+                y = y0;
+                key = board[x0][y0] - 0x0100;
+                if        (x+1 < dim && board[x+1][y] == key) {
+                    ++x;
+                } else if (y+1 < dim && board[x][y+1] == key) {
+                    ++y;
+                } else if (x-1 >= 0  && board[x-1][y] == key) {
+                    --x;
+                } else if (y-1 >= 0  && board[x][y-1] == key) {
+                    --y;
+                }
+                gfx_SetColor(color);
+                drawPipe(x, y, x0, y0, dim);
+            }
             exit = 0;
         } 
     }
-    
+    drawNodes(level);
 }
