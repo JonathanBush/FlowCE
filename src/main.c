@@ -71,7 +71,7 @@ void main(void) {
     uint8_t i, j, levelNum;
     flow_pack_t *selected;
     flow_level_t *level;
-	uint8_t *progress;
+    uint8_t *progress;
     
     gfx_Begin();
     
@@ -88,17 +88,17 @@ void main(void) {
         char *perfectText = "Perfect!";
         char *completeText = "Complete!";
         char *options[4];
-		
+        
 
         options[0] = "Next Level";
         options[1] = "Try Again";
         options[2] = "Select Level";
         options[3] = "Quit";
 
-		progress = loadProgress(selected);
+        progress = loadProgress(selected);
         levelNum = selectLevel(selected, progress);
-		
-		
+        
+        
         exitCondition = 0;
         while (!exitCondition) {
             level = loadLevel(selected, levelNum);
@@ -107,11 +107,11 @@ void main(void) {
             switch (playLevel(level)) {
                 case 1:
                     selection = endMenu(completeText, options, 4, 0x0F - (levelNum + 1 >= selected->numLevels));
-					progress[levelNum] |= 0x1;
+                    progress[levelNum] |= 0x1;
                     break;
                 case 2:
                     selection = endMenu(perfectText,  options, 4, 0x0D - (levelNum + 1 >= selected->numLevels));
-					progress[levelNum] |= 0x3;
+                    progress[levelNum] |= 0x3;
                     break;
                 default:
                     selection = 3;
@@ -135,15 +135,15 @@ void main(void) {
             free(level->board);
             free(level);
         }
-		saveProgress(selected, progress);
-		free(progress);
+        saveProgress(selected, progress);
+        free(progress);
     } else {
         dbg_sprintf(dbgout, "No packs\n");
     }
     delay(1500);
     
     while(!kb_AnyKey());
-	
+    
     free(selected->levelDimensions);
     free(selected->levelSizes);
     free(selected);
@@ -315,26 +315,26 @@ uint8_t selectLevel(flow_pack_t *pack, uint8_t *progress) {
     uint8_t i;
     char levelText[4];
     kb_key_t key = 0xF0;
-	uint8_t star[20] = {
-							23, 2,
-							28, 18,
-							45, 18,
-							31, 28,
-							37, 44,
-							23, 34,
-							9, 44,
-							15, 28,
-							1, 18,
-							18, 18
-						};
-	uint8_t check[12] = {
-							8, 18,
-							19, 29,
-							38, 6,
-							43, 10,
-							20, 39,
-							4, 22
-						};
+    uint8_t star[20] = {
+                            23, 2,
+                            28, 18,
+                            45, 18,
+                            31, 28,
+                            37, 44,
+                            23, 34,
+                            9, 44,
+                            15, 28,
+                            1, 18,
+                            18, 18
+                        };
+    uint8_t check[12] = {
+                            8, 18,
+                            19, 29,
+                            38, 6,
+                            43, 10,
+                            20, 39,
+                            4, 22
+                        };
     gfx_SetDrawBuffer();
     gfx_FillScreen(FL_BLACK);
     gfx_SetTextFGColor(FL_WHITE);
@@ -372,34 +372,34 @@ uint8_t selectLevel(flow_pack_t *pack, uint8_t *progress) {
             gfx_FillRectangle_NoClip(1, 1, BOARD_SIZE, BOARD_SIZE);
             gfx_SetColor(FL_CURSOR_COLOR);
 
-			gfx_FillRectangle_NoClip((selection % 5) * 48 + 1, ((selection / 5) % 5) * 48 + 1, 47, 47);
-			if (progress[selection]) {
-				gfx_SetColor(FL_GRAY);
-				
-			}
+            gfx_FillRectangle_NoClip((selection % 5) * 48 + 1, ((selection / 5) % 5) * 48 + 1, 47, 47);
+            if (progress[selection]) {
+                gfx_SetColor(FL_GRAY);
+                
+            }
             gfx_SetColor(FL_WHITE);
             gfx_Rectangle_NoClip(0, 0, BORDER_SIZE, BORDER_SIZE);
             for (i = 48; i < BORDER_SIZE; i += 48) {
-				gfx_VertLine_NoClip(i, 0, BOARD_SIZE);
-				gfx_HorizLine_NoClip(0, i, BOARD_SIZE);
+                gfx_VertLine_NoClip(i, 0, BOARD_SIZE);
+                gfx_HorizLine_NoClip(0, i, BOARD_SIZE);
                 //gfx_Line_NoClip(1, i, BOARD_SIZE, i);
                 //gfx_Line_NoClip(i, 1, i, BOARD_SIZE);
             }
             for (i = 25 * (selection / 25);
                     i < ((25 * (selection / 25) + 25 < pack->numLevels) ? 25 * (selection / 25) + 25 : pack->numLevels);
                     ++i) {
-				uint8_t xc = (i % 5) * 48 + 1;
-				uint8_t yc = ((i / 5) % 5) * 48 + 1;
-				gfx_SetColor(FL_GRAY);
-				if (progress[i] == 0x3) {
-					polygonXY_NoClip(star, 10, xc, yc);
-					gfx_FloodFill(xc + 18, yc + 34, FL_GRAY);
-				} else if (progress[i] == 0x1) {
-					polygonXY_NoClip(check, 6, xc, yc);
-					gfx_FloodFill(xc + 18, yc + 34, FL_GRAY);
-				}
-				
-				gfx_SetColor(FL_WHITE);
+                uint8_t xc = (i % 5) * 48 + 1;
+                uint8_t yc = ((i / 5) % 5) * 48 + 1;
+                gfx_SetColor(FL_GRAY);
+                if (progress[i] == 0x3) {
+                    polygonXY_NoClip(star, 10, xc, yc);
+                    gfx_FloodFill(xc + 18, yc + 34, FL_GRAY);
+                } else if (progress[i] == 0x1) {
+                    polygonXY_NoClip(check, 6, xc, yc);
+                    gfx_FloodFill(xc + 18, yc + 34, FL_GRAY);
+                }
+                
+                gfx_SetColor(FL_WHITE);
                 sprintf(levelText, "%d", i + 1);
                 gfx_SetTextXY(xc + 23 - (gfx_GetStringWidth(levelText) / 2), yc + 19);
                 gfx_PrintString(levelText);
@@ -890,97 +890,97 @@ uint8_t endMenu(char *title, char **options, uint8_t num, uint8_t mask) {
 }
 
 void saveProgress(flow_pack_t *pack, uint8_t *progress) {
-	ti_var_t saveData;
-	char *varName = "FLOWDATA";
-	uint16_t bits = 2 * pack->numLevels;
-	uint8_t length = 1 + ((bits - 1) / 8);
-	uint8_t *buffer = calloc(length, sizeof(uint8_t));
-	uint16_t i;
-	uint8_t offset;
-	char packVarName[9];
-	size_t chunks;
-	
-	saveData = ti_Open(varName, "r+");
-	if (!saveData) {
-		saveData = ti_Open(varName, "a+");
-		dbg_sprintf(dbgout, "Opened for appending");
-	}
-	
-	for (i = 0; i < bits; i += 2) {
-		buffer[i / 8] |= (progress[i / 2] << (i % 8));
-	}
-	
-	dbg_sprintf(dbgout, "Saving data for %s", pack->appvarName);
-	offset = 0;
-	for (;;) {
-		chunks = ti_Read(packVarName, 1, 9, saveData);
-		if (ti_Tell(saveData) >= ti_GetSize(saveData)) {
-			// append
-			ti_Seek(-9, SEEK_CUR, saveData);
-			dbg_sprintf(dbgout, "save append");
-			ti_Write(pack->appvarName, 1, 9, saveData);
-			ti_Write(&length, 1, 1, saveData);
-			break;
-		} else if (strcmp(pack->appvarName, packVarName)) {
-			// seek to next
-			//dbg_sprintf(dbgout, "save seek");
-			ti_Read(&offset, 1, 1, saveData);
-			ti_Seek(offset, SEEK_CUR, saveData);
-		} else {
-			// found
-			dbg_sprintf(dbgout, "save found");
-			ti_Read(&offset, 1, 1, saveData);
-			break;
-		}
-		
-	}
-	ti_Write(buffer, 1, length, saveData);
-	ti_SetArchiveStatus(true, saveData);
-	ti_Close(saveData);
-	free(buffer);
+    ti_var_t saveData;
+    char *varName = "FLOWDATA";
+    uint16_t bits = 2 * pack->numLevels;
+    uint8_t length = 1 + ((bits - 1) / 8);
+    uint8_t *buffer = calloc(length, sizeof(uint8_t));
+    uint16_t i;
+    uint8_t offset;
+    char packVarName[9];
+    size_t chunks;
+    
+    saveData = ti_Open(varName, "r+");
+    if (!saveData) {
+        saveData = ti_Open(varName, "a+");
+        dbg_sprintf(dbgout, "Opened for appending");
+    }
+    
+    for (i = 0; i < bits; i += 2) {
+        buffer[i / 8] |= (progress[i / 2] << (i % 8));
+    }
+    
+    dbg_sprintf(dbgout, "Saving data for %s", pack->appvarName);
+    offset = 0;
+    for (;;) {
+        chunks = ti_Read(packVarName, 1, 9, saveData);
+        if (ti_Tell(saveData) >= ti_GetSize(saveData)) {
+            // append
+            ti_Seek(-9, SEEK_CUR, saveData);
+            dbg_sprintf(dbgout, "save append");
+            ti_Write(pack->appvarName, 1, 9, saveData);
+            ti_Write(&length, 1, 1, saveData);
+            break;
+        } else if (strcmp(pack->appvarName, packVarName)) {
+            // seek to next
+            //dbg_sprintf(dbgout, "save seek");
+            ti_Read(&offset, 1, 1, saveData);
+            ti_Seek(offset, SEEK_CUR, saveData);
+        } else {
+            // found
+            dbg_sprintf(dbgout, "save found");
+            ti_Read(&offset, 1, 1, saveData);
+            break;
+        }
+        
+    }
+    ti_Write(buffer, 1, length, saveData);
+    ti_SetArchiveStatus(true, saveData);
+    ti_Close(saveData);
+    free(buffer);
 }
 
 uint8_t *loadProgress(flow_pack_t *pack) {
-	ti_var_t saveData;
-	uint8_t i;
-	uint8_t *progress = calloc(pack->numLevels, sizeof(uint8_t));
-	char *varName = "FLOWDATA";
-	char packVarName[9];
-	uint16_t bits = 2 * pack->numLevels;
-	uint8_t length = 1 + ((bits - 1) / 8);
-	uint8_t *buffer;
-	uint8_t offset;
-	
-	saveData = ti_Open(varName, "r");
-	if (!saveData) {
-		return progress;
-	}
-	offset = 0;
-	do {
-		ti_Seek(offset, SEEK_CUR, saveData);
-		ti_Read(packVarName, 1, 9, saveData);
-		ti_Read(&offset, 1, 1, saveData);
-	} while (ti_Tell(saveData) < ti_GetSize(saveData) && strcmp(packVarName, pack->appvarName));
-	
-	if (ti_Tell(saveData) >= ti_GetSize(saveData)) {
-		return progress;
-	}
-	
-	buffer = malloc(length);
-	ti_Read(buffer, 1, length, saveData);
-	for (i = 0; i < bits; i += 2) {
-		progress[i / 2] = (buffer[i / 8] & (0x3 << (i % 8))) >> (i % 8);
-	}
-	free(buffer);
-	ti_Close(saveData);
-	return progress;
+    ti_var_t saveData;
+    uint8_t i;
+    uint8_t *progress = calloc(pack->numLevels, sizeof(uint8_t));
+    char *varName = "FLOWDATA";
+    char packVarName[9];
+    uint16_t bits = 2 * pack->numLevels;
+    uint8_t length = 1 + ((bits - 1) / 8);
+    uint8_t *buffer;
+    uint8_t offset;
+    
+    saveData = ti_Open(varName, "r");
+    if (!saveData) {
+        return progress;
+    }
+    offset = 0;
+    do {
+        ti_Seek(offset, SEEK_CUR, saveData);
+        ti_Read(packVarName, 1, 9, saveData);
+        ti_Read(&offset, 1, 1, saveData);
+    } while (ti_Tell(saveData) < ti_GetSize(saveData) && strcmp(packVarName, pack->appvarName));
+    
+    if (ti_Tell(saveData) >= ti_GetSize(saveData)) {
+        return progress;
+    }
+    
+    buffer = malloc(length);
+    ti_Read(buffer, 1, length, saveData);
+    for (i = 0; i < bits; i += 2) {
+        progress[i / 2] = (buffer[i / 8] & (0x3 << (i % 8))) >> (i % 8);
+    }
+    free(buffer);
+    ti_Close(saveData);
+    return progress;
 }
 
 void polygonXY_NoClip(uint8_t *points, unsigned num_points, uint24_t x, uint8_t y) {
-	unsigned i;
-	
-	for (i = 2; i < num_points * 2; i += 2) {
-		gfx_Line_NoClip(x + points[i - 2], y + points[i - 1], x + points[i], y + points[i + 1]);
-	}
-	gfx_Line_NoClip(x + points[0], y + points[1], x + points[i - 2], y + points[i - 1]);
+    unsigned i;
+    
+    for (i = 2; i < num_points * 2; i += 2) {
+        gfx_Line_NoClip(x + points[i - 2], y + points[i - 1], x + points[i], y + points[i + 1]);
+    }
+    gfx_Line_NoClip(x + points[0], y + points[1], x + points[i - 2], y + points[i - 1]);
 }
