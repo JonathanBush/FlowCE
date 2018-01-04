@@ -109,6 +109,7 @@ void main(void) {
         uint8_t exitCondition;
         char *perfectText = "Perfect!";
         char *completeText = "Complete!";
+        char *optionsText = "Options";
         char *options[4];
 
         options[0] = "Next Level";
@@ -134,7 +135,8 @@ void main(void) {
                     progress[levelNum] |= 0x3;
                     break;
                 default:
-                    selection = 3;
+                    selection = endMenu(optionsText, options, 4, 0x0E);
+                    //selection = 3;
                     break;
                     
             }
@@ -164,9 +166,11 @@ void main(void) {
     
     while(kb_AnyKey());
     
-    free(selected->levelDimensions);
-    free(selected->levelSizes);
-    free(selected);
+    if (selected != NULL) {
+        free(selected->levelDimensions);
+        free(selected->levelSizes);
+        free(selected);
+    }
     gfx_End();
 }
 
@@ -174,8 +178,12 @@ void displayTitleScreen() {
     uint8_t xPos, yPos, i;
     const uint8_t colors[6] = {FL_RED,FL_GREEN,FL_BLUE,FL_YELLOW,FL_WHITE,FL_WHITE};
     const char title[] = "FlowCE";
+    const char author[] = "by jonbush";
 
     gfx_FillScreen(FL_BLACK);
+    gfx_SetTextScale(1,1);
+    gfx_SetTextFGColor(FL_WHITE);
+    gfx_PrintStringXY(author, (LCD_WIDTH - gfx_GetStringWidth(author)) / 2, 150);
     gfx_SetTextScale(3, 5);
     xPos = (LCD_WIDTH - gfx_GetStringWidth(title)) / 2;
     yPos = (LCD_HEIGHT - 8*5) / 2 - 4*5;
@@ -185,6 +193,7 @@ void displayTitleScreen() {
         gfx_PrintChar(title[i]);
         xPos += gfx_GetCharWidth(title[i]);
     }
+    
     
     delay(TITLE_SCREEN_DELAY);
 }
@@ -692,6 +701,7 @@ uint8_t playLevel(flow_level_t *level) {
         
     }
 
+    clearPathMemory();
     gfx_SetColor(FL_BORDER_COLOR);
 
     gfx_Blit(gfx_buffer);
