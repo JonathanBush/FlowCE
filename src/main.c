@@ -48,13 +48,19 @@ typedef struct flow_level_t {
     uint8_t *board; //length of dim*dim
 } flow_level_t;
 
+typedef struct path_point {
+    uint8_t x;
+    uint8_t y;
+    struct path_point *next;
+} path_point;
+
     
 /* function prototypes */
 void displayTitleScreen(void);
 flow_pack_t *loadPack(char *appvarName);
 flow_pack_t *selectLevelPack();
 flow_level_t *loadLevel(flow_pack_t *pack, uint8_t number);
-uint8_t selectLevel(flow_pack_t *pack, uint8_t *progress);
+int selectLevel(flow_pack_t *pack, uint8_t *progress);
 uint8_t playLevel(flow_level_t *level);
 void drawNodes(flow_level_t *level);
 void drawPipe(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t radius);
@@ -66,9 +72,25 @@ uint8_t endMenu(char *title, char **options, uint8_t num, uint8_t mask);
 uint8_t *loadProgress(flow_pack_t *pack);
 void saveProgress(flow_pack_t *pack, uint8_t *progress);
 void polygonXY_NoClip(uint8_t *points, unsigned num_points, uint24_t x, uint8_t y);
+void clearPathMemory();
+void clearLinkedList(path_point *head);
+uint8_t scanPathMemory(uint8_t x, uint8_t y, uint8_t ignoreColor);
+void restorePipe(uint8_t color, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], flow_level_t *level);
+
+/* global variables */
+uint16_t pipeComplete;
+uint8_t flowsComplete;
+uint8_t colorsComplete[20];
+path_point *pathMemory[24];
+char zeroID[10] = {0,0,0,0,0,0,0,0,0,0};
+const uint24_t statusX = 244;
+const uint8_t statusY = 40;
+const uint8_t titleY = 2;
+const uint8_t statusSpace = 16;
 
 void main(void) {
-    uint8_t i, j, levelNum;
+    uint8_t i, j;
+    int levelNum;
     flow_pack_t *selected;
     flow_level_t *level;
     uint8_t *progress;
@@ -88,7 +110,6 @@ void main(void) {
         char *perfectText = "Perfect!";
         char *completeText = "Complete!";
         char *options[4];
-        
 
         options[0] = "Next Level";
         options[1] = "Try Again";
@@ -98,9 +119,8 @@ void main(void) {
         progress = loadProgress(selected);
         levelNum = selectLevel(selected, progress);
         
-        
         exitCondition = 0;
-        while (!exitCondition) {
+        while (!exitCondition && levelNum != -1) {
             level = loadLevel(selected, levelNum);
 
 
@@ -123,7 +143,7 @@ void main(void) {
                     ++levelNum;
                     break;
                 case 1:
-                    
+                    // play the level again
                     break;
                 case 2:
                     levelNum = selectLevel(selected, progress);
@@ -140,9 +160,9 @@ void main(void) {
     } else {
         dbg_sprintf(dbgout, "No packs\n");
     }
-    delay(1500);
+    //delay(1500);
     
-    while(!kb_AnyKey());
+    while(kb_AnyKey());
     
     free(selected->levelDimensions);
     free(selected->levelSizes);
@@ -222,10 +242,16 @@ flow_pack_t * selectLevelPack() {
     
     gfx_FillScreen(FL_BLACK);
     gfx_SetTextFGColor(FL_WHITE);
+    gfx_SetTextScale(1, 2);
+    gfx_PrintStringXY("FlowCE", statusX, titleY);
     gfx_SetTextScale(1, 1);
+    gfx_PrintStringXY("Select", statusX, statusY);
+    gfx_PrintStringXY("Pack", statusX, statusY + statusSpace);
+    gfx_SetColor(FL_WHITE);
+    gfx_Rectangle(0, 0, BORDER_SIZE, BORDER_SIZE);
     
     ti_CloseAll();
-    while ((var_name = ti_Detect(&search_pos, search_string)) != NULL) {
+    while ((numPacks < BOARD_SIZE / PACK_SELECT_SPACING) && (var_name = ti_Detect(&search_pos, search_string)) != NULL) {
         
         packVar = ti_Open(var_name, "r");
         if (packVar != NULL) {
@@ -233,7 +259,7 @@ flow_pack_t * selectLevelPack() {
             ti_Read(&nameLength, 1, 1, packVar);
             ti_Read(name, nameLength, 1, packVar);
             name[nameLength] = '\0';
-            gfx_PrintStringXY(name, 10, numPacks*PACK_SELECT_SPACING + 10);
+            gfx_PrintStringXY(name, (BOARD_SIZE - gfx_GetStringWidth(name)) / 2, numPacks*PACK_SELECT_SPACING + 10);
             ++numPacks;
             ti_CloseAll();
         }
@@ -247,7 +273,7 @@ flow_pack_t * selectLevelPack() {
                 key = kb_Data[7];
                 
                 gfx_SetColor(FL_BLACK);
-                gfx_Rectangle_NoClip(5, selection*PACK_SELECT_SPACING + 5, 120, PACK_SELECT_SPACING);
+                gfx_Rectangle_NoClip(5, selection*PACK_SELECT_SPACING + 5, BOARD_SIZE - 9, PACK_SELECT_SPACING);
                 
                 switch (key) {
                     case kb_Down:
@@ -261,12 +287,16 @@ flow_pack_t * selectLevelPack() {
                         
                 }
                 gfx_SetColor(FL_WHITE);
-                gfx_Rectangle_NoClip(5, selection*PACK_SELECT_SPACING + 5, 120, PACK_SELECT_SPACING);
+                gfx_Rectangle_NoClip(5, selection*PACK_SELECT_SPACING + 5, BOARD_SIZE - 9, PACK_SELECT_SPACING);
             }
 
-        } while (kb_Data[1] != kb_2nd && kb_Data[6] != kb_Enter);
+        } while (kb_Data[1] != kb_2nd && kb_Data[6] != kb_Enter && kb_Data[6] != kb_Clear);
     } else {
         gfx_PrintStringXY("No packs available", 10, 10);
+        delay(2000);
+        return NULL;
+    }
+    if (kb_Data[6] == kb_Clear) {
         return NULL;
     }
     
@@ -310,7 +340,7 @@ flow_level_t * loadLevel(flow_pack_t *pack, uint8_t number) {
     return level;
 }
 
-uint8_t selectLevel(flow_pack_t *pack, uint8_t *progress) {
+int selectLevel(flow_pack_t *pack, uint8_t *progress) {
     uint8_t selection;
     uint8_t i;
     char levelText[4];
@@ -338,7 +368,12 @@ uint8_t selectLevel(flow_pack_t *pack, uint8_t *progress) {
     gfx_SetDrawBuffer();
     gfx_FillScreen(FL_BLACK);
     gfx_SetTextFGColor(FL_WHITE);
+    
     gfx_SetTextScale(1, 1);
+    gfx_PrintStringXY("Select", statusX, statusY);
+    gfx_PrintStringXY("Level", statusX, statusY + statusSpace);
+    gfx_SetTextScale(1, 2);
+    gfx_PrintStringXY("FlowCE", statusX, titleY);
     //gfx_SetColor(FL_WHITE);
     
     gfx_Blit(gfx_buffer);
@@ -382,8 +417,6 @@ uint8_t selectLevel(flow_pack_t *pack, uint8_t *progress) {
             for (i = 48; i < BORDER_SIZE; i += 48) {
                 gfx_VertLine_NoClip(i, 0, BOARD_SIZE);
                 gfx_HorizLine_NoClip(0, i, BOARD_SIZE);
-                //gfx_Line_NoClip(1, i, BOARD_SIZE, i);
-                //gfx_Line_NoClip(i, 1, i, BOARD_SIZE);
             }
             for (i = 25 * (selection / 25);
                     i < ((25 * (selection / 25) + 25 < pack->numLevels) ? 25 * (selection / 25) + 25 : pack->numLevels);
@@ -401,12 +434,15 @@ uint8_t selectLevel(flow_pack_t *pack, uint8_t *progress) {
                 
                 gfx_SetColor(FL_WHITE);
                 sprintf(levelText, "%d", i + 1);
-                gfx_SetTextXY(xc + 23 - (gfx_GetStringWidth(levelText) / 2), yc + 19);
+                gfx_SetTextXY(xc + 23 - (gfx_GetStringWidth(levelText) / 2), yc + 15);
                 gfx_PrintString(levelText);
             }
             gfx_SwapDraw();
         }
-    } while (kb_Data[1] != kb_2nd && kb_Data[6] != kb_Enter);
+    } while (kb_Data[1] != kb_2nd && kb_Data[6] != kb_Enter && kb_Data[6] != kb_Clear);
+    if (kb_Data[6] == kb_Clear) {
+        return -1;
+    }
     
     gfx_SetDrawScreen();
     return selection;
@@ -430,23 +466,17 @@ void drawNodes(flow_level_t *level) {
     }
 }
 
-uint8_t pipeComplete;
-
 /* return 0 if incomplete, 1 if complete, 2 if perfect */
 uint8_t playLevel(flow_level_t *level) {
     uint8_t i, x, y, x0, y0;
-    uint8_t boardSize, exit, selection;
+    uint8_t boardSize, exit, selection, lastSelection;
     uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION];
     uint8_t dim = level->dim;
     kb_key_t key;
     uint16_t movesMade = 0;
-    uint8_t flowsComplete = 0;
-    uint8_t colorsComplete[20];
     char text[20];
-    static const uint8_t statusX = 244;
-    static const uint8_t statusY = 40;
-    static const uint8_t statusSpace = 16;
     pipeComplete = 0;
+    flowsComplete = 0;
     
     gfx_SetDrawBuffer();
     gfx_FillScreen(FL_BLACK);
@@ -470,10 +500,10 @@ uint8_t playLevel(flow_level_t *level) {
     }
     x = y = 0;
     selection = 0;
-    
+    lastSelection = 0;
     gfx_SetTextFGColor(FL_WHITE);
     gfx_SetTextScale(1, 2);
-    gfx_PrintStringXY("FlowCE", statusX, 2);
+    gfx_PrintStringXY("FlowCE", statusX, titleY);
     
     gfx_SetTextScale(1, 1);
 
@@ -528,10 +558,14 @@ uint8_t playLevel(flow_level_t *level) {
         } else if (kb_Data[6] == kb_Enter || kb_Data[1] == kb_2nd) {
             // selection button pressed
             if (selection) {
+                lastSelection = selection;
                 selection = 0;
+                clearPathMemory();
             } else if (board[x][y]) {
-                ++movesMade;
                 selection = board[x][y] & 0x00FF;
+                if (selection != lastSelection) {
+                    ++movesMade;
+                }
                 if (colorsComplete[selection]) {
                     colorsComplete[selection] = 0;
                     --flowsComplete;
@@ -603,9 +637,27 @@ uint8_t playLevel(flow_level_t *level) {
                         ++pipeComplete;
                         board[x][y] = board[x0][y0] + 0x0100;
                         drawPipe(x0, y0, x, y, dim);
+                        lastSelection = selection;
                         selection = 0;
+                        clearPathMemory();
                     } else {
+                        uint8_t xs, ys, restoreColor;
                         erasePipeFrom(board[x][y], board, level);
+                        for (ys = 0; ys < dim; ++ys) {
+                            for (xs = 0; xs < dim; ++xs) {
+                                dbg_sprintf(dbgout, "%4x ", board[xs][ys]);
+                            }
+                            dbg_sprintf(dbgout, "\n");
+                        }
+                        for (ys = 0; ys < dim; ++ys) {
+                            for (xs = 0; xs < dim; ++xs) {
+                                if (!board[xs][ys] && (restoreColor = scanPathMemory(xs, ys, selection))) {  // restore pipe if any
+                                        restorePipe(restoreColor, board, level);
+                    
+                                }
+                            }
+                            dbg_sprintf(dbgout, "\n");
+                        }
                     }
                 
                 } else { // some other color already there
@@ -739,9 +791,15 @@ void erasePipe(uint8_t x, uint8_t y, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOA
     uint8_t dim = level->dim;
     uint8_t color = board[x][y] & 0x00FF;
     uint16_t count = board[x][y] & 0xFF00;
+    uint8_t restoreColor;
+    path_point *first, *last;
     
     x1 = x;
     y1 = y;
+    first = (path_point *)malloc(sizeof(path_point));
+    last = first;
+    first->x = x;
+    first->y = y;
     for (exit = 1; exit;) {
         uint16_t key, end;
         count += 0x0100;
@@ -758,10 +816,16 @@ void erasePipe(uint8_t x, uint8_t y, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOA
             --y1;
         }
         if (x1 != x || y1 != y) {
+            path_point *newPoint = (path_point *)malloc(sizeof(path_point));
             uint8_t xMax = max(x, x1);
             uint8_t yMax = max(y, y1);
             gfx_SetColor(FL_BLACK);
             drawPipe(x, y, x1, y1, dim);    // erase the pipe
+            
+            newPoint->x = x1;
+            newPoint->y = y1;
+            last->next = newPoint;
+            last = newPoint;
             --pipeComplete;
             gfx_SetColor(FL_BORDER_COLOR);
             if (x != x1) {  // movement in the x direction
@@ -783,7 +847,7 @@ void erasePipe(uint8_t x, uint8_t y, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOA
             x = x1;
             y = y1;
         } else {
-            if ((board[x0][y0] & 0xFF00) > 0x0100) {
+            if ((board[x0][y0] & 0xFF00) > 0x0100) {    // fix the pipe drawing
                 x = x0;
                 y = y0;
                 key = board[x0][y0] - 0x0100;
@@ -800,6 +864,13 @@ void erasePipe(uint8_t x, uint8_t y, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOA
                 drawPipe(x, y, x0, y0, dim);
             }
             exit = 0;
+            if (pathMemory[color] && pathMemory[color]->x == last->x && pathMemory[color]->y == last->y) {
+                last->next = pathMemory[color]->next;
+                free(pathMemory[color]);
+            } else {
+                last->next = pathMemory[color];
+            }
+            pathMemory[color] = first;
         } 
     }
     drawNodes(level);
@@ -899,6 +970,7 @@ void saveProgress(flow_pack_t *pack, uint8_t *progress) {
     uint8_t offset;
     char packVarName[9];
     size_t chunks;
+    char *ptr = (char*)os_GetSystemStats();
     
     saveData = ti_Open(varName, "r+");
     if (!saveData) {
@@ -911,24 +983,27 @@ void saveProgress(flow_pack_t *pack, uint8_t *progress) {
     }
     
     dbg_sprintf(dbgout, "Saving data for %s", pack->appvarName);
+    //if (memcmp(zeroID, &ptr[28], 10)) {
+        ti_Write(&ptr[28], 1, 10, saveData); // write the ID
+    //}
     offset = 0;
     for (;;) {
         chunks = ti_Read(packVarName, 1, 9, saveData);
         if (ti_Tell(saveData) >= ti_GetSize(saveData)) {
             // append
             ti_Seek(-9, SEEK_CUR, saveData);
-            dbg_sprintf(dbgout, "save append");
+            dbg_sprintf(dbgout, "save append\n");
             ti_Write(pack->appvarName, 1, 9, saveData);
             ti_Write(&length, 1, 1, saveData);
             break;
         } else if (strcmp(pack->appvarName, packVarName)) {
             // seek to next
-            //dbg_sprintf(dbgout, "save seek");
+            dbg_sprintf(dbgout, "save seek\n");
             ti_Read(&offset, 1, 1, saveData);
             ti_Seek(offset, SEEK_CUR, saveData);
         } else {
             // found
-            dbg_sprintf(dbgout, "save found");
+            dbg_sprintf(dbgout, "save found\n");
             ti_Read(&offset, 1, 1, saveData);
             break;
         }
@@ -952,10 +1027,18 @@ uint8_t *loadProgress(flow_pack_t *pack) {
     uint8_t offset;
     
     saveData = ti_Open(varName, "r");
-    if (!saveData) {
+    if (!saveData) {    // does not already exist
         return progress;
+    } else {
+        char *saveID = (char*)ti_GetDataPtr(saveData);
+        char *ptr = (char*)os_GetSystemStats();
+        //ti_Read(&saveID, 1, 10, saveData);
+        if (memcmp(&ptr[28], saveID, 10) && memcmp(zeroID, saveID, 10) && memcmp(&ptr[28], zeroID, 10)) {
+            ti_Delete(varName);
+            return progress;
+        }
     }
-    offset = 0;
+    offset = 10;
     do {
         ti_Seek(offset, SEEK_CUR, saveData);
         ti_Read(packVarName, 1, 9, saveData);
@@ -983,4 +1066,68 @@ void polygonXY_NoClip(uint8_t *points, unsigned num_points, uint24_t x, uint8_t 
         gfx_Line_NoClip(x + points[i - 2], y + points[i - 1], x + points[i], y + points[i + 1]);
     }
     gfx_Line_NoClip(x + points[0], y + points[1], x + points[i - 2], y + points[i - 1]);
+}
+
+void clearPathMemory() {
+    uint8_t i;
+    for (i = 0; i < sizeof(pathMemory) / sizeof(path_point *); ++i) {
+        clearLinkedList(pathMemory[i]);
+        pathMemory[i] = NULL;
+    }
+}
+
+void clearLinkedList(path_point *head) {
+    path_point *next;
+    while (head != NULL) {
+        next = head->next;
+        free(head);
+        head = next;
+    }
+}
+
+uint8_t scanPathMemory(uint8_t x, uint8_t y, uint8_t ignoreColor) {
+    uint8_t i;
+    for (i = 1; i < sizeof(pathMemory) / sizeof(path_point *); ++i) {
+        if (i != ignoreColor &&
+            pathMemory[i] &&
+            pathMemory[i]->next &&
+            pathMemory[i]->next->x == x &&
+            pathMemory[i]->next->y == y
+            ) {
+                //dbg_sprintf(dbgout, "restore point found at (%u, %u), color=%u\n", pathMemory[i]->x, pathMemory[i]->y, i);
+            return i;
+        }
+    }
+    return 0;
+}
+
+void restorePipe(uint8_t color, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], flow_level_t *level) {
+    path_point *head = pathMemory[color];
+    path_point *next = (head != NULL) ? head->next : NULL;
+    //dbg_sprintf(dbgout, "restorePipe()\n");
+    gfx_SetColor(color);
+
+    if (head && level->board[head->x + level->dim * head->y]) {
+        ++pipeComplete;
+    }
+    while (next != NULL && ((board[next->x][next->y] == 0) || ((board[next->x][next->y] & 0xFF) == color))) {
+        //dbg_sprintf(dbgout, "redraw");
+        drawPipe(head->x, head->y, next->x, next->y, level->dim);
+        board[next->x][next->y] = board[head->x][head->y] + 0x0100;
+        if ((board[head->x][head->y] & 0xFF00) != 0x0100) {
+            ++pipeComplete;
+            if (level->board[next->x + level->dim * next->y]) {
+                colorsComplete[color] = 1;
+                ++flowsComplete;
+            }
+        }
+        free(head);
+        head = next;
+        next = head->next;        
+    }
+    if (head == NULL) {
+        pathMemory[color] = NULL;
+    } else {
+        pathMemory[color] = head;
+    }
 }
