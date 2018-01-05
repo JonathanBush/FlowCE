@@ -486,7 +486,7 @@ uint8_t playLevel(flow_level_t *level) {
         
         gfx_Blit(gfx_buffer);
         keyCounter = 0;
-        while (kb_AnyKey() && keyCounter < 256) {
+        while (kb_AnyKey() && keyCounter < 128) {
             ++keyCounter;
         }
         
