@@ -485,6 +485,10 @@ uint8_t playLevel(flow_level_t *level) {
         gfx_PrintStringXY(text, 319 - gfx_GetStringWidth(text), statusY + 5*statusSpace);
         
         gfx_Blit(gfx_buffer);
+        keyCounter = 0;
+        while (kb_AnyKey() && keyCounter < 256) {
+            ++keyCounter;
+        }
         
         if (exit) {
             return exit - 1;
@@ -634,11 +638,6 @@ uint8_t playLevel(flow_level_t *level) {
             fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
         }
         
-        gfx_Blit(gfx_buffer);
-        keyCounter = 0;
-        while (kb_AnyKey() && keyCounter < 256) {
-            ++keyCounter;
-        }
         
     }
 
