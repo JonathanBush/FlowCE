@@ -16,9 +16,9 @@ public class PackConverter {
         System.out.print("Directory path: ");
         Scanner input = new Scanner(System.in);
         converter.addDirectory(new File(input.next()));
-        //converter.randRotate();
+        converter.randRotate();
         //converter.flipShuffle();
-        //converter.randShuffle();
+        converter.randShuffle();
         //Compression comp = new FancyCompress();
         //Compression comp = new FancierCompress();
         //Compression comp = new AwesomeCompress();
