@@ -43,7 +43,6 @@ void main(void) {
     
     if (selected != NULL) {
         uint8_t selection;
-        uint8_t exitCondition;
         char *perfectText = "Perfect!";
         char *completeText = "Complete!";
         char *optionsText = "Options";
@@ -55,12 +54,10 @@ void main(void) {
         options[3] = "Quit";
 
         progress = loadProgress(selected);
-        levelNum = selectLevel(selected, progress);
+        levelNum = selectLevel(selected, progress, 0);
         
-        exitCondition = 0;
-        while (!exitCondition && levelNum != -1) {
+        while (levelNum != -1) {
             level = loadLevel(selected, levelNum);
-
 
             switch (playLevel(level)) {
                 case 1:
@@ -85,14 +82,15 @@ void main(void) {
                     // play the level again
                     break;
                 case 2:
-                    levelNum = selectLevel(selected, progress);
+                    levelNum = selectLevel(selected, progress, levelNum);
                     break;
                 case 3:
-                    exitCondition = 1;
+                    levelNum = -1;
                     break;
             }
             free(level->board);
             free(level);
+            clearPathMemory();
         }
         saveProgress(selected, progress);
         free(progress);
@@ -287,11 +285,11 @@ flow_level_t * loadLevel(flow_pack_t *pack, uint8_t number) {
     return level;
 }
 
-int selectLevel(flow_pack_t *pack, uint8_t *progress) {
+int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection) {
     uint8_t selection;
     uint8_t i;
     char levelText[4];
-    kb_key_t key = 0xF0;
+    kb_key_t key = 0;
     uint8_t star[20] = {
                             23, 2,
                             28, 18,
@@ -323,69 +321,77 @@ int selectLevel(flow_pack_t *pack, uint8_t *progress) {
     gfx_PrintStringXY("FlowCE", statusX, titleY);
     //gfx_SetColor(FL_WHITE);
     
-    gfx_Blit(gfx_buffer);
-    
-    selection = 0;
+    selection = (initSelection / 5) * 5;
     while (kb_AnyKey());
     
     do {
-        kb_Scan();
+        uint8_t keyCounter = 0;
         
-        if (key != kb_Data[7]) {
-            
-            key = kb_Data[7];
-            switch (key) {
-                case kb_Left:
-                    selection -= (selection > 0);
-                    break;
-                case kb_Right:
-                    selection += (selection + 1 < pack->numLevels);
-                    break;
-                case kb_Up:
-                    selection -= 5*(selection - 5 >= 0);
-                    break;
-                case kb_Down:
-                    selection += 5*(selection + 6 < pack->numLevels);
-                    break;
-                default:
-                    break;
-            }
-            gfx_SetColor(FL_BLACK);
-            gfx_FillRectangle_NoClip(1, 1, BOARD_SIZE, BOARD_SIZE);
-            gfx_SetColor(FL_CURSOR_COLOR);
-
-            gfx_FillRectangle_NoClip((selection % 5) * 48 + 1, ((selection / 5) % 5) * 48 + 1, 47, 47);
-            if (progress[selection]) {
-                gfx_SetColor(FL_GRAY);
-                
-            }
-            gfx_SetColor(FL_WHITE);
-            gfx_Rectangle_NoClip(0, 0, BORDER_SIZE, BORDER_SIZE);
-            for (i = 48; i < BORDER_SIZE; i += 48) {
-                gfx_VertLine_NoClip(i, 0, BOARD_SIZE);
-                gfx_HorizLine_NoClip(0, i, BOARD_SIZE);
-            }
-            for (i = 25 * (selection / 25);
-                    i < ((25 * (selection / 25) + 25 < pack->numLevels) ? 25 * (selection / 25) + 25 : pack->numLevels);
-                    ++i) {
-                uint8_t xc = (i % 5) * 48 + 1;
-                uint8_t yc = ((i / 5) % 5) * 48 + 1;
-                gfx_SetColor(FL_GRAY);
-                if (progress[i] == 0x3) {
-                    polygonXY_NoClip(star, 10, xc, yc);
-                    gfx_FloodFill(xc + 18, yc + 34, FL_GRAY);
-                } else if (progress[i] == 0x1) {
-                    polygonXY_NoClip(check, 6, xc, yc);
-                    gfx_FloodFill(xc + 18, yc + 34, FL_GRAY);
-                }
-                
-                gfx_SetColor(FL_WHITE);
-                sprintf(levelText, "%d", i + 1);
-                gfx_SetTextXY(xc + 23 - (gfx_GetStringWidth(levelText) / 2), yc + 15);
-                gfx_PrintString(levelText);
-            }
-            gfx_SwapDraw();
+        
+        //kb_Scan();
+        
+        
+        
+        switch (key) {
+            case kb_Left:
+                selection -= (selection > 0);
+                break;
+            case kb_Right:
+                selection += (selection + 1 < pack->numLevels);
+                break;
+            case kb_Up:
+                selection -= 5*(selection - 5 >= 0);
+                break;
+            case kb_Down:
+                selection += 5*(selection + 6 < pack->numLevels);
+                break;
+            default:
+                break;
         }
+        gfx_SetColor(FL_BLACK);
+        gfx_FillRectangle_NoClip(1, 1, BOARD_SIZE, BOARD_SIZE);
+        gfx_SetColor(FL_CURSOR_COLOR);
+
+        gfx_FillRectangle_NoClip((selection % 5) * 48 + 1, ((selection / 5) % 5) * 48 + 1, 47, 47);
+        if (progress[selection]) {
+            gfx_SetColor(FL_GRAY);
+            
+        }
+        gfx_SetColor(FL_WHITE);
+        gfx_Rectangle_NoClip(0, 0, BORDER_SIZE, BORDER_SIZE);
+        for (i = 48; i < BORDER_SIZE; i += 48) {
+            gfx_VertLine_NoClip(i, 0, BOARD_SIZE);
+            gfx_HorizLine_NoClip(0, i, BOARD_SIZE);
+        }
+        for (i = 25 * (selection / 25);
+                i < ((25 * (selection / 25) + 25 < pack->numLevels) ? 25 * (selection / 25) + 25 : pack->numLevels);
+                ++i) {
+            uint8_t xc = (i % 5) * 48 + 1;
+            uint8_t yc = ((i / 5) % 5) * 48 + 1;
+            gfx_SetColor(FL_GRAY);
+            if (progress[i] == 0x3) {
+                polygonXY_NoClip(star, 10, xc, yc);
+                gfx_FloodFill(xc + 18, yc + 34, FL_GRAY);
+            } else if (progress[i] == 0x1) {
+                polygonXY_NoClip(check, 6, xc, yc);
+                gfx_FloodFill(xc + 18, yc + 34, FL_GRAY);
+            }
+            
+            gfx_SetColor(FL_WHITE);
+            sprintf(levelText, "%d", i + 1);
+            gfx_SetTextXY(xc + 23 - (gfx_GetStringWidth(levelText) / 2), yc + 15);
+            gfx_PrintString(levelText);
+        }
+        
+        gfx_Blit(gfx_buffer);
+        
+        while (kb_AnyKey() && keyCounter < KEY_REPEAT_DELAY / 3) {
+            ++keyCounter;
+        }
+        do {
+            kb_Scan();
+        } while (!(key = kb_Data[7]) && kb_Data[6] != kb_Enter && kb_Data[6] != kb_Clear);
+        
     } while (kb_Data[1] != kb_2nd && kb_Data[6] != kb_Enter && kb_Data[6] != kb_Clear);
     if (kb_Data[6] == kb_Clear) {
         return -1;
@@ -474,19 +480,20 @@ uint8_t playLevel(flow_level_t *level) {
         
         gfx_PrintStringXY("flows", statusX, statusY + 3*statusSpace);
         sprintf(text, "%u/%u", flowsComplete, level->flows);
-        gfx_PrintStringXY(text, 319 - gfx_GetStringWidth(text), statusY + 3*statusSpace);
+        gfx_PrintStringXY(text, (LCD_WIDTH - 1) - gfx_GetStringWidth(text), statusY + 3*statusSpace);
         
         gfx_PrintStringXY("moves", statusX, statusY + 4*statusSpace);
         sprintf(text, "%u", movesMade);
-        gfx_PrintStringXY(text, 319 - gfx_GetStringWidth(text), statusY + 4*statusSpace);
+        gfx_PrintStringXY(text, (LCD_WIDTH - 1) - gfx_GetStringWidth(text), statusY + 4*statusSpace);
         
         gfx_PrintStringXY("pipe", statusX, statusY + 5*statusSpace);
         sprintf(text, "%u%%", (100 * pipeComplete) / level->pipe);
-        gfx_PrintStringXY(text, 319 - gfx_GetStringWidth(text), statusY + 5*statusSpace);
+        gfx_PrintStringXY(text, (LCD_WIDTH - 1) - gfx_GetStringWidth(text), statusY + 5*statusSpace);
         
         gfx_Blit(gfx_buffer);
+        
         keyCounter = 0;
-        while (kb_AnyKey() && keyCounter < 128) {
+        while (kb_AnyKey() && keyCounter < KEY_REPEAT_DELAY) {
             ++keyCounter;
         }
         
