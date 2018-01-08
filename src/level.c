@@ -136,7 +136,7 @@ int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection) {
         }
         do {
             kb_Scan();
-        } while (!(key = kb_Data[7]) && kb_Data[6] != kb_Enter && kb_Data[6] != kb_Clear);
+        } while (!(key = kb_Data[7]) && kb_Data[1] != kb_2nd && kb_Data[6] != kb_Enter && kb_Data[6] != kb_Clear);
         
     } while (kb_Data[1] != kb_2nd && kb_Data[6] != kb_Enter && kb_Data[6] != kb_Clear);
     if (kb_Data[6] == kb_Clear) {
