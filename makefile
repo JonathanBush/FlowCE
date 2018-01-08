@@ -10,7 +10,7 @@
 NAME        ?= FLOWCE
 DEBUGMODE   ?= NDEBUG
 COMPRESSED  ?= YES
-ICON        ?= 
+ICON        ?= icon.png
 DESCRIPTION ?= "FlowCE"
 
 L ?= graphx fileioc keypadc

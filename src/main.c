@@ -130,7 +130,6 @@ void displayTitleScreen() {
         xPos += gfx_GetCharWidth(title[i]);
     }
     
-    
     delay(TITLE_SCREEN_DELAY);
 }
 
@@ -321,7 +320,7 @@ int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection) {
     gfx_PrintStringXY("FlowCE", statusX, titleY);
     //gfx_SetColor(FL_WHITE);
     
-    selection = (initSelection / 5) * 5;
+    selection = (initSelection / 25) * 25;
     while (kb_AnyKey());
     
     do {

@@ -6,6 +6,7 @@
 #define BOARD_SIZE (BORDER_SIZE - 2)
 #define PACK_SELECT_SPACING (18)
 #define MAX_BOARD_DIMENSION (14)
+#define KEY_REPEAT_DELAY (100)
 
 #define min(a, b) ((a < b) ? a : b)
 #define max(a, b) ((a > b) ? a : b)
@@ -39,7 +40,7 @@ void displayTitleScreen(void);
 flow_pack_t *loadPack(char *appvarName);
 flow_pack_t *selectLevelPack();
 flow_level_t *loadLevel(flow_pack_t *pack, uint8_t number);
-int selectLevel(flow_pack_t *pack, uint8_t *progress);
+int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection);
 uint8_t playLevel(flow_level_t *level);
 uint8_t endMenu(char *title, char **options, uint8_t num, uint8_t mask);
 
