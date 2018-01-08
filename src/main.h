@@ -1,12 +1,33 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <tice.h>
+
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <graphx.h>
+#include <keypadc.h>
+#include <fileioc.h>
+#include <debug.h>
+
+#include "flow_colors.h"
+
 #define TITLE_SCREEN_DELAY (1400)
 #define BORDER_SIZE (240)
 #define BOARD_SIZE (BORDER_SIZE - 2)
 #define PACK_SELECT_SPACING (18)
 #define MAX_BOARD_DIMENSION (14)
 #define KEY_REPEAT_DELAY (100)
+#define statusX (244)
+#define statusY (40)
+#define titleY (2)
+#define statusSpace (16)
 
 #define min(a, b) ((a < b) ? a : b)
 #define max(a, b) ((a > b) ? a : b)
@@ -37,38 +58,18 @@ typedef struct path_point {
     
 /* function prototypes */
 void displayTitleScreen(void);
-flow_pack_t *loadPack(char *appvarName);
-flow_pack_t *selectLevelPack();
-flow_level_t *loadLevel(flow_pack_t *pack, uint8_t number);
-int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection);
-uint8_t playLevel(flow_level_t *level);
+
 uint8_t endMenu(char *title, char **options, uint8_t num, uint8_t mask);
-
-void drawNodes(flow_level_t *level);
-void drawPipe(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t radius);
-void drawCursor(uint8_t x, uint8_t y, uint8_t dim);
-void fillCursor(uint8_t x, uint8_t y, uint8_t dim, uint8_t color);
-
 void polygonXY_NoClip(uint8_t *points, unsigned num_points, uint24_t x, uint8_t y);
 
-uint8_t *loadProgress(flow_pack_t *pack);
-void saveProgress(flow_pack_t *pack, uint8_t *progress);
-void erasePipe(uint8_t x0, uint8_t y0, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], flow_level_t *level);
-void erasePipeFrom(uint16_t key, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], flow_level_t *level);
-void clearPathMemory();
-void clearLinkedList(path_point *head);
-uint8_t scanPathMemory(uint8_t x, uint8_t y, uint8_t ignoreColor);
-void restorePipe(uint8_t color, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION], flow_level_t *level);
+
 
 /* global variables */
-uint16_t pipeComplete;
-uint8_t flowsComplete;
-uint8_t colorsComplete[20];
-path_point *pathMemory[24];
-char zeroID[10] = {0,0,0,0,0,0,0,0,0,0};
-const uint24_t statusX = 244;
-const uint8_t statusY = 40;
-const uint8_t titleY = 2;
-const uint8_t statusSpace = 16;
+extern uint16_t pipeComplete;
+extern uint8_t flowsComplete;
+extern uint8_t colorsComplete[20];
+extern path_point *pathMemory[24];
+
+
 
 #endif
