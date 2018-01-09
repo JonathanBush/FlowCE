@@ -9,9 +9,9 @@ public class FlowCEAppvarCompress implements Compression {
     public String packToString(LinkedList<Level> pack){
         byte[] appVar;
         int numLevels = pack.size();
-        String variableName = "FLPACKRB";
-        String packName = "Rainbow Pack";
-        String outputFilePath = "Rainbow.8xv";
+        String variableName = "FLPACK14";
+        String packName = "14x14 Pack";
+        String outputFilePath = "14x14.8xv";
 
         String packAppVarIdentifier = "FLCE";
 

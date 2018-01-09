@@ -7,7 +7,7 @@ uint8_t flowsComplete;
 uint8_t colorsComplete[20];
 
 /* return 0 if incomplete, 1 if complete, 2 if perfect */
-uint8_t playLevel(flow_level_t *level) {
+uint8_t playLevel(flow_level_t *level, uint8_t status) {
     uint8_t i, x, y, x0, y0;
     uint8_t boardSize, exit, selection, lastSelection;
     uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DIMENSION];
@@ -47,9 +47,15 @@ uint8_t playLevel(flow_level_t *level) {
     gfx_PrintStringXY("FlowCE", statusX, titleY);
     
     gfx_SetTextScale(1, 1);
-
+    
+    if (status == 1) {
+        gfx_SetTextFGColor(FL_GRAY);
+    } else if (status == 3) {
+        gfx_SetTextFGColor(FL_YELLOW);
+    }
     sprintf(text, "level %u", level->number + 1);
     gfx_PrintStringXY(text, statusX, statusY);
+    gfx_SetTextFGColor(FL_WHITE);
     sprintf(text, "%ux%u", dim, dim);
     gfx_PrintStringXY(text, statusX, statusY + statusSpace);
 

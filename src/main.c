@@ -47,18 +47,12 @@ start:
         progress = loadProgress(selected);
         levelNum = selectLevel(selected, progress, 0);
         
-        do {
+        while (levelNum >= 0) {
 
-            if (levelNum == -1) {
-                        free(selected->levelDimensions);
-                        free(selected->levelSizes);
-                        free(selected);
-                        while (kb_AnyKey()) ;
-                        goto start;
-            }
+            
             level = loadLevel(selected, levelNum);
 
-            switch (playLevel(level)) {
+            switch (playLevel(level, progress[levelNum])) {
                 case 1:
                     selection = endMenu(completeText, options, 4, 0x0F - (levelNum + 1 >= selected->numLevels));
                     progress[levelNum] |= 0x1;
@@ -89,9 +83,6 @@ start:
                     break;
                 case 2:
                     levelNum = selectLevel(selected, progress, levelNum);
-                    if (levelNum == -1) {
-                        continue;
-                    }
                     break;
                 case 3:
                     levelNum = -2;
@@ -102,10 +93,19 @@ skip:
             free(level->board);
             free(level);
             clearPathMemory();
-        } while (levelNum != -2);
+        }
         
         saveProgress(selected, progress);
         free(progress);
+        
+        if (levelNum == -1) {
+                        free(selected->levelDimensions);
+                        free(selected->levelSizes);
+                        free(selected);
+                        while (kb_AnyKey()) ;
+                        goto start;
+        }
+        
     } else {
         dbg_sprintf(dbgout, "No packs\n");
     }
