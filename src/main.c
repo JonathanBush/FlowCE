@@ -28,6 +28,8 @@ void main(void) {
 
     //srand(rtc_Time());
     displayTitleScreen();
+start:
+
     selected = selectLevelPack();
     
     if (selected != NULL) {
@@ -45,7 +47,15 @@ void main(void) {
         progress = loadProgress(selected);
         levelNum = selectLevel(selected, progress, 0);
         
-        while (levelNum != -1) {
+        do {
+
+            if (levelNum == -1) {
+                        free(selected->levelDimensions);
+                        free(selected->levelSizes);
+                        free(selected);
+                        while (kb_AnyKey()) ;
+                        goto start;
+            }
             level = loadLevel(selected, levelNum);
 
             switch (playLevel(level)) {
@@ -79,16 +89,21 @@ void main(void) {
                     break;
                 case 2:
                     levelNum = selectLevel(selected, progress, levelNum);
+                    if (levelNum == -1) {
+                        continue;
+                    }
                     break;
                 case 3:
-                    levelNum = -1;
+                    levelNum = -2;
                     break;
             }
-            skip:
+skip:
+
             free(level->board);
             free(level);
             clearPathMemory();
-        }
+        } while (levelNum != -2);
+        
         saveProgress(selected, progress);
         free(progress);
     } else {

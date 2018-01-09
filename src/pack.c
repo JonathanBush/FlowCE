@@ -44,20 +44,44 @@ flow_pack_t * selectLevelPack() {
     uint8_t selection = 0;
     uint8_t numPacks = 0;
     kb_key_t key = 0xF0;
-    uint8_t nameLength;
+    uint8_t nameLength,i;
     char *var_name;
     char name[20];
     ti_var_t packVar;
+    char *keys[7] = {
+                    "move:",
+                    "{arrows}",
+                    "select:",
+                    "[2nd]",
+                    "[enter]",
+                    "back:",
+                    "[clear]"
+    };
     
+    gfx_SetDrawScreen();
     gfx_FillScreen(FL_BLACK);
-    gfx_SetTextFGColor(FL_WHITE);
+    
+    gfx_SetColor(FL_WHITE);
+    gfx_Rectangle(0, 0, BORDER_SIZE, BORDER_SIZE);
     gfx_SetTextScale(1, 2);
     gfx_PrintStringXY("FlowCE", statusX, titleY);
     gfx_SetTextScale(1, 1);
     gfx_PrintStringXY("Select", statusX, statusY);
     gfx_PrintStringXY("Pack", statusX, statusY + statusSpace);
-    gfx_SetColor(FL_WHITE);
-    gfx_Rectangle(0, 0, BORDER_SIZE, BORDER_SIZE);
+    
+    gfx_SetTextFGColor(FL_GRAY);
+    for (i = 0; i < 7; ++i) {
+        gfx_PrintStringXY(keys[i], statusX, statusY + (4 + i) * statusSpace);
+    }
+    gfx_SetTextFGColor(FL_WHITE);
+    
+    
+    
+    
+    
+    
+    
+    
     
     ti_CloseAll();
     while ((numPacks < BOARD_SIZE / PACK_SELECT_SPACING) && (var_name = ti_Detect(&search_pos, search_string)) != NULL) {

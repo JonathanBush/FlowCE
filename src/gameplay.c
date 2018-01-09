@@ -84,9 +84,10 @@ uint8_t playLevel(flow_level_t *level) {
         fillCursor(x, y, level->dim, FL_BLACK);
         
         keyCounter = 0;
-        while (kb_AnyKey() && keyCounter < KEY_REPEAT_DELAY) {
+        do {
+            kb_Scan();
             ++keyCounter;
-        }
+        } while ((kb_Data[7] && keyCounter < KEY_REPEAT_DELAY) || kb_Data[1] || kb_Data[6]);
         
         if (exit) {
             break;
@@ -94,12 +95,11 @@ uint8_t playLevel(flow_level_t *level) {
             
         do {
             kb_Scan();
-        } while (!kb_AnyKey());
-                /*!kb_Data[7] &&
-                kb_Data[6] != kb_Clear &&
-                kb_Data[6] != kb_Enter &&
-                kb_Data[1] != kb_2nd
-                );*/
+        } while (//!kb_AnyKey());
+                !kb_Data[7] &&
+                !kb_Data[6] &&
+                !kb_Data[1]
+                );
                
         if (kb_Data[6] == kb_Clear) {
             // quit button pressed
