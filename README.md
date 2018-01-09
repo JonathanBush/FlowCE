@@ -8,6 +8,8 @@ To use FlowCE, you will need to install the CE C Libraries on your calculator. I
 
 ### Use
 
+Run FlowCE using Asm(prgmFLOWCE) for OS 5.2 and below. Users with later OS versions may simply run prgmFLOWCE directly from the home screen.
+
 Upon starting FlowCE, you will be presented with the pack selection screen, which allows you to select which type of levels you would like to play. Use the arrow keys to move the cursor, and the [2nd] or [enter] key to make selection. Press [clear] to exit FlowCE.
 
 After selecting the pack, the level selection screen will be displayed. This screen shows the available levels in the selected pack and their respective completion statuses. Use the arrow keys to move the corsor, and the [2nd] or [enter] key to make a selection. Press [clear] to go back to the pack selections screen or to exit FlowCE.
@@ -25,5 +27,4 @@ Once you have selected a level, the game board will be displayed. Use the arrow 
 
 ### Building
 
-In the command prompt, cd to the directory/ folder that contains the makefile.  Then, enter "make" in the console.  The compiled program should be in the "bin" folder.  Transfer the file to your calculator and run it by doing Asm(prgmFLOWCE
-You can also just do prgmFLOWCE *ONLY* if you have CE OS 5.3
+You may also compile the latest version of FlowCE by cloning the repository at https://github.com/JonathanBush/FlowCE.git and building it with the CE C SDK.
