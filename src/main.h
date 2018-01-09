@@ -21,7 +21,7 @@
 #define TITLE_SCREEN_DELAY (1400)
 #define BORDER_SIZE (240)
 #define BOARD_SIZE (BORDER_SIZE - 2)
-#define PACK_SELECT_SPACING (18)
+
 #define MAX_BOARD_DIMENSION (14)
 #define KEY_REPEAT_DELAY (100)
 #define statusX (244)

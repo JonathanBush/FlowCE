@@ -1,4 +1,6 @@
 #include "main.h"
+#define PACK_SELECT_SPACING (18)
+#define MAX_PACKS (BOARD_SIZE / PACK_SELECT_SPACING)
 
 flow_pack_t * loadPack(char *appvarName) {
     unsigned char nameLength;
@@ -48,14 +50,17 @@ flow_pack_t * selectLevelPack() {
     char *var_name;
     char name[20];
     ti_var_t packVar;
-    char *keys[7] = {
+    char *keys[10] = {
                     "move:",
                     "{arrows}",
                     "select:",
                     "[2nd]",
                     "[enter]",
                     "back:",
-                    "[clear]"
+                    "[clear]",
+                    "browse:",
+                    "[y=]",
+                    "[graph]"
     };
     
     gfx_SetDrawScreen();
@@ -70,21 +75,13 @@ flow_pack_t * selectLevelPack() {
     gfx_PrintStringXY("Pack", statusX, statusY + statusSpace);
     
     gfx_SetTextFGColor(FL_GRAY);
-    for (i = 0; i < 7; ++i) {
-        gfx_PrintStringXY(keys[i], statusX, statusY + (4 + i) * statusSpace);
+    for (i = 0; i < 10; ++i) {
+        gfx_PrintStringXY(keys[i], statusX, statusY + (3 + i) * statusSpace);
     }
     gfx_SetTextFGColor(FL_WHITE);
     
-    
-    
-    
-    
-    
-    
-    
-    
     ti_CloseAll();
-    while ((numPacks < BOARD_SIZE / PACK_SELECT_SPACING) && (var_name = ti_Detect(&search_pos, search_string)) != NULL) {
+    while ((numPacks < MAX_PACKS) && (var_name = ti_Detect(&search_pos, search_string)) != NULL) {
         
         packVar = ti_Open(var_name, "r");
         if (packVar != NULL) {

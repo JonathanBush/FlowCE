@@ -61,9 +61,10 @@ void restorePipe(uint8_t color, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_DI
         head = next;
         next = head->next;        
     }
-    if (head == NULL) {
+    pathMemory[color] = head;
+    /*if (head == NULL) {
         pathMemory[color] = NULL;
     } else {
         pathMemory[color] = head;
-    }
+    }*/
 }

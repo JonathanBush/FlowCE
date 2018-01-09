@@ -21,14 +21,14 @@ uint8_t playLevel(flow_level_t *level) {
     
     gfx_SetDrawBuffer();
     gfx_FillScreen(FL_BLACK);
-    //gfx_SetTextFGColor(FL_WHITE);
-    //gfx_SetTextScale(1, 1);
     gfx_SetColor(FL_BORDER_COLOR);
     
     for (i = 0; i <= level->dim; ++i) {
         uint8_t pos = (i * BOARD_SIZE) / level->dim;
-        gfx_Line_NoClip(0, pos, BOARD_SIZE, pos);
-        gfx_Line_NoClip(pos, 0, pos, BOARD_SIZE);
+        gfx_HorizLine_NoClip(0, pos, BORDER_SIZE - 1);
+        gfx_VertLine_NoClip(pos, 0, BOARD_SIZE);
+        //gfx_Line_NoClip(0, pos, BOARD_SIZE, pos);
+        //gfx_Line_NoClip(pos, 0, pos, BOARD_SIZE);
     }
     for (x = 0; x < dim; ++x) {
         for (y = 0; y < dim; ++y) {
@@ -147,14 +147,11 @@ uint8_t playLevel(flow_level_t *level) {
                 } else {
                     erasePipeFrom(board[x][y], board, level);
                 }
-                //fillCursor(x, y, level->dim, FL_BLACK);
-                //fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
             }
             
             dbg_sprintf(dbgout, "Selection: %d\n", selection);
         } else if (kb_Data[7]) {
             // arrow key pressed
-            //fillCursor(x, y, level->dim, FL_BLACK);
             x0 = x;
             y0 = y;
             switch (kb_Data[7]) {
@@ -235,15 +232,13 @@ uint8_t playLevel(flow_level_t *level) {
             }
             //fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
         } else if (kb_Data[1] == kb_Yequ) {
-            return 4;
+            return 4;   // browse back
         } else if (kb_Data[1] == kb_Graph) {
-            return 5;
+            return 5;   // browse forward
         }
         
         
     }
-
-    //gfx_SetColor(FL_BORDER_COLOR);
 
     return exit - 1;
 }
@@ -301,7 +296,7 @@ void fillCursor(uint8_t x, uint8_t y, uint8_t dim, uint8_t color) {
     uint8_t x1 = ((x + 1) * BOARD_SIZE) / dim - 1;
     uint8_t y1 = ((y + 1) * BOARD_SIZE) / dim - 1;
     gfx_FloodFill(x0, y0, color);
-    if (gfx_GetPixel(x1, y0) != color) {
+    if (gfx_GetPixel(x1, y0) != color) {    // make sure all the regions are filled
         gfx_FloodFill(x1, y0, color);
     }
     if (gfx_GetPixel(x1, y1) != color) {
@@ -324,7 +319,6 @@ void erasePipeFrom(uint16_t key, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOARD_D
     
                 x = (x * BOARD_SIZE) / level->dim + bz;
                 y = (y * BOARD_SIZE) / level->dim + bz;
-                //gfx_FillCircle_NoClip(x, y, BOARD_SIZE / (6 * dim));
                 
                 x = MAX_BOARD_DIMENSION;
                 break;
@@ -379,14 +373,12 @@ void erasePipe(uint8_t x, uint8_t y, uint16_t board[MAX_BOARD_DIMENSION][MAX_BOA
             gfx_SetColor(FL_BORDER_COLOR);
             if (x != x1) {  // movement in the x direction
                 uint8_t yTop = (yMax * BOARD_SIZE) / dim;
-                yMax = ((yMax + 1) * BOARD_SIZE) / dim;
                 xMax = (xMax * BOARD_SIZE) / dim;
-                gfx_Line_NoClip(xMax, yTop, xMax, yMax);
+                gfx_VertLine_NoClip(xMax, yTop, BOARD_SIZE / dim);
             } else { // movement in the y direction
                 uint8_t xLeft = ((xMax) * BOARD_SIZE) / dim;
                 yMax = (yMax * BOARD_SIZE) / dim;
-                xMax = ((xMax + 1) * BOARD_SIZE) / dim;
-                gfx_Line_NoClip(xLeft, yMax, xMax, yMax);
+                gfx_HorizLine_NoClip(xLeft, yMax, BOARD_SIZE / dim);
             }
             if (!level->board[x1+dim*y1]) {
                 board[x1][y1] = 0;  // remove from the board

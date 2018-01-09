@@ -84,7 +84,7 @@ int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection) {
                 selection -= 5*(selection - 5 >= 0);
                 break;
             case kb_Down:
-                selection += 5*(selection + 6 < pack->numLevels);
+                selection += 5*(selection + 5 < pack->numLevels);
                 break;
             default:
                 break;
