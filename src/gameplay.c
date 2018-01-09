@@ -60,7 +60,7 @@ uint8_t playLevel(flow_level_t *level) {
     
     // game loop:
     exit = 0;
-    fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
+    
     for (;;) {
         gfx_SetColor(FL_BLACK);
         gfx_FillRectangle_NoClip(statusX, statusY + 3*statusSpace, 319 - statusX, 4*statusSpace);
@@ -77,7 +77,11 @@ uint8_t playLevel(flow_level_t *level) {
         sprintf(text, "%u%%", (100 * pipeComplete) / level->pipe);
         gfx_PrintStringXY(text, (LCD_WIDTH - 1) - gfx_GetStringWidth(text), statusY + 5*statusSpace);
         
+        fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
+        
         gfx_Blit(gfx_buffer);
+        
+        fillCursor(x, y, level->dim, FL_BLACK);
         
         keyCounter = 0;
         while (kb_AnyKey() && keyCounter < KEY_REPEAT_DELAY) {
@@ -85,27 +89,26 @@ uint8_t playLevel(flow_level_t *level) {
         }
         
         if (exit) {
-            return exit - 1;
+            break;
         }
             
         do {
             kb_Scan();
-        } while (
-                !kb_Data[7] &&
+        } while (!kb_AnyKey());
+                /*!kb_Data[7] &&
                 kb_Data[6] != kb_Clear &&
                 kb_Data[6] != kb_Enter &&
                 kb_Data[1] != kb_2nd
-                );
+                );*/
                
         if (kb_Data[6] == kb_Clear) {
             // quit button pressed
             exit = 1;
-            continue;
         } else if (kb_Data[6] == kb_Enter || kb_Data[1] == kb_2nd) {
             // selection button pressed
             if (selection) {
                 lastSelection = selection;
-                selection = 0;
+                selection = 0;  // deselect
                 clearPathMemory();
             } else if (board[x][y]) {
                 selection = board[x][y] & 0x00FF;
@@ -121,8 +124,9 @@ uint8_t playLevel(flow_level_t *level) {
                     for (x0 = 0; x0 < dim; ++x0) {
                         for (y0 = 0; y0 < dim; ++y0) {
                             if ((x != x0 || y != y0) && board[x0][y0] == (0x0100 | selection)) { // this is the other node
-                                board[x0][y0] &= 0x00FF;
-                                x0 = 250;
+                                //board[x0][y0] &= 0x00FF;
+                                board[x0][y0] = selection;
+                                x0 = MAX_BOARD_DIMENSION;
                                 break;
                             }
                         }
@@ -134,7 +138,7 @@ uint8_t playLevel(flow_level_t *level) {
                             if (board[x0][y0] == (0x0100 | selection)) {
                                 erasePipe(x0, y0, board, level);
                                 board[x0][y0] = selection;
-                                x0 = 250;
+                                x0 = MAX_BOARD_DIMENSION;
                                 break;
                             }
                         }
@@ -143,14 +147,14 @@ uint8_t playLevel(flow_level_t *level) {
                 } else {
                     erasePipeFrom(board[x][y], board, level);
                 }
-                fillCursor(x, y, level->dim, FL_BLACK);
-                fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
+                //fillCursor(x, y, level->dim, FL_BLACK);
+                //fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
             }
             
             dbg_sprintf(dbgout, "Selection: %d\n", selection);
         } else if (kb_Data[7]) {
             // arrow key pressed
-            fillCursor(x, y, level->dim, FL_BLACK);
+            //fillCursor(x, y, level->dim, FL_BLACK);
             x0 = x;
             y0 = y;
             switch (kb_Data[7]) {
@@ -186,7 +190,7 @@ uint8_t playLevel(flow_level_t *level) {
                         lastSelection = selection;
                         selection = 0;
                         clearPathMemory();
-                    } else {
+                    } else {    // this is the pipe
                         uint8_t xs, ys, restoreColor;
                         erasePipeFrom(board[x][y], board, level);
                         for (ys = 0; ys < dim; ++ys) {
@@ -195,7 +199,7 @@ uint8_t playLevel(flow_level_t *level) {
                             }
                             dbg_sprintf(dbgout, "\n");
                         }
-                        for (ys = 0; ys < dim; ++ys) {
+                        for (ys = 0; ys < dim; ++ys) {  // scan for other pipes to restore
                             for (xs = 0; xs < dim; ++xs) {
                                 if (!board[xs][ys] && (restoreColor = scanPathMemory(xs, ys, selection))) {  // restore pipe if any
                                         restorePipe(restoreColor, board, level);
@@ -229,7 +233,11 @@ uint8_t playLevel(flow_level_t *level) {
                     exit = 2 + (movesMade == level->flows);
                 } 
             }
-            fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
+            //fillCursor(x, y, level->dim, FL_CURSOR_COLOR);
+        } else if (kb_Data[1] == kb_Yequ) {
+            return 4;
+        } else if (kb_Data[1] == kb_Graph) {
+            return 5;
         }
         
         

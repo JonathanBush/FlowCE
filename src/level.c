@@ -32,7 +32,7 @@ flow_level_t * loadLevel(flow_pack_t *pack, uint8_t number) {
 }
 
 int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection) {
-    uint8_t selection;
+    uint8_t selection, lowerBound;
     uint8_t i;
     char levelText[4];
     kb_key_t key = 0;
@@ -73,11 +73,6 @@ int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection) {
     do {
         uint8_t keyCounter = 0;
         
-        
-        //kb_Scan();
-        
-        
-        
         switch (key) {
             case kb_Left:
                 selection -= (selection > 0);
@@ -106,11 +101,13 @@ int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection) {
         gfx_SetColor(FL_WHITE);
         gfx_Rectangle_NoClip(0, 0, BORDER_SIZE, BORDER_SIZE);
         for (i = 48; i < BORDER_SIZE; i += 48) {
-            gfx_VertLine_NoClip(i, 0, BOARD_SIZE);
-            gfx_HorizLine_NoClip(0, i, BOARD_SIZE);
+            gfx_VertLine_NoClip(i, 0, BORDER_SIZE);
+            gfx_HorizLine_NoClip(0, i, BORDER_SIZE);
         }
-        for (i = 25 * (selection / 25);
-                i < ((25 * (selection / 25) + 25 < pack->numLevels) ? 25 * (selection / 25) + 25 : pack->numLevels);
+        
+        lowerBound = 25 * (selection / 25);
+        for (i = lowerBound;
+                i < ((lowerBound + 25 < pack->numLevels) ? lowerBound + 25 : pack->numLevels);
                 ++i) {
             uint8_t xc = (i % 5) * 48 + 1;
             uint8_t yc = ((i / 5) % 5) * 48 + 1;
@@ -131,7 +128,7 @@ int selectLevel(flow_pack_t *pack, uint8_t *progress, uint8_t initSelection) {
         
         gfx_Blit(gfx_buffer);
         
-        while (kb_AnyKey() && keyCounter < KEY_REPEAT_DELAY / 3) {
+        while (kb_AnyKey() && keyCounter < KEY_REPEAT_DELAY / 2) {
             ++keyCounter;
         }
         do {

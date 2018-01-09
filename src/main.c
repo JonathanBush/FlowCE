@@ -61,7 +61,14 @@ void main(void) {
                     selection = endMenu(optionsText, options, 4, 0x0E);
                     //selection = 3;
                     break;
-                    
+                case 4:
+                    levelNum -= (levelNum > 0);
+                    goto skip;
+                    break;
+                case 5:
+                    levelNum += (levelNum + 1 < selected->numLevels);
+                    goto skip;
+                    break;
             }
             switch (selection) {
                 case 0:
@@ -77,6 +84,7 @@ void main(void) {
                     levelNum = -1;
                     break;
             }
+            skip:
             free(level->board);
             free(level);
             clearPathMemory();
@@ -151,14 +159,13 @@ uint8_t endMenu(char *title, char **options, uint8_t num, uint8_t mask) {
     gfx_Rectangle_NoClip(x, y, width, height);
     gfx_SetTextScale(1,1);
     gfx_PrintStringXY(
-                title,
-                x + padding + (width - 2 * padding - gfx_GetStringWidth(title)) / 2,
-                y + padding + 6
-            );
+                        title,
+                        x + padding + (width - 2 * padding - gfx_GetStringWidth(title)) / 2,
+                        y + padding + 6
+                    );
     
     do {
         uint8_t skipped = 0;
-        
 
         for (i = 0; i < num; ++i) {
             
@@ -207,8 +214,6 @@ uint8_t endMenu(char *title, char **options, uint8_t num, uint8_t mask) {
     return selection;
 }
 
-
-
 void polygonXY_NoClip(uint8_t *points, unsigned num_points, uint24_t x, uint8_t y) {
     unsigned i;
     
@@ -217,4 +222,3 @@ void polygonXY_NoClip(uint8_t *points, unsigned num_points, uint24_t x, uint8_t 
     }
     gfx_Line_NoClip(x + points[0], y + points[1], x + points[i - 2], y + points[i - 1]);
 }
-

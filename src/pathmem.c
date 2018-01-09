@@ -1,5 +1,6 @@
 #include "main.h"
 #include "gameplay.h"
+#include "pathmem.h"
 
 path_point *pathMemory[24];
 
