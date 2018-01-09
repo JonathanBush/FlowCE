@@ -23,7 +23,7 @@ Once you have selected a level, the game board will be displayed. Use the arrow 
     [graph] - Skip to the next level
 
 
-### BUILDING
+### Building
 
 In the command prompt, cd to the directory/ folder that contains the makefile.  Then, enter "make" in the console.  The compiled program should be in the "bin" folder.  Transfer the file to your calculator and run it by doing Asm(prgmFLOWCE
 You can also just do prgmFLOWCE *ONLY* if you have CE OS 5.3
