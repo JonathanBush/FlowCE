@@ -11,7 +11,7 @@ NAME        ?= FLOWCE
 DEBUGMODE   ?= NDEBUG
 COMPRESSED  ?= YES
 ICON        ?= icon.png
-DESCRIPTION ?= "FlowCE"
+DESCRIPTION ?= "Connect dots, fill spaces."
 
 L ?= graphx fileioc keypadc
 
