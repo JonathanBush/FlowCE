@@ -11,7 +11,7 @@ NAME        ?= FLOWCE
 DEBUGMODE   ?= NDEBUG
 COMPRESSED  ?= YES
 ICON        ?= 
-DESCRIPTION ?= "Flow Free for the TI-84+CE"
+DESCRIPTION ?= "Flow for the CE"
 
 L ?= graphx fileioc keypadc
 
