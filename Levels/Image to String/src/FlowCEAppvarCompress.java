@@ -3,15 +3,23 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.Scanner;
 
 public class FlowCEAppvarCompress implements Compression {
 
     public String packToString(LinkedList<Level> pack){
         byte[] appVar;
         int numLevels = pack.size();
-        String variableName = "FLPACK14";
+        Scanner input = new Scanner(System.in);
+        System.out.println("Variable Name: ");
+        String variableName = input.next();
+        System.out.println("Display Name: ");
+        String packName = input.next();
+        packName += input.nextLine();
+        String outputFilePath = variableName + ".8xp";
+        /*String variableName = "FLPACK14";
         String packName = "14x14 Pack";
-        String outputFilePath = "14x14.8xv";
+        String outputFilePath = "14x14.8xv";*/
 
         String packAppVarIdentifier = "FLCE";
 

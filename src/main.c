@@ -15,7 +15,6 @@
 #include "level.h"
 
 void main(void) {
-    uint8_t i, j;
     int levelNum;
     flow_pack_t *selected;
     flow_level_t *level;
@@ -48,7 +47,6 @@ start:
         levelNum = selectLevel(selected, progress, 0);
         
         while (levelNum >= 0) {
-
             
             level = loadLevel(selected, levelNum);
 
@@ -99,11 +97,11 @@ skip:
         free(progress);
         
         if (levelNum == -1) {
-                        free(selected->levelDimensions);
-                        free(selected->levelSizes);
-                        free(selected);
-                        while (kb_AnyKey()) ;
-                        goto start;
+            free(selected->levelDimensions);
+            free(selected->levelSizes);
+            free(selected);
+            while (kb_AnyKey()) ;
+            goto start;
         }
         
     } else {

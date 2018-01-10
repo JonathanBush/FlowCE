@@ -14,7 +14,7 @@ uint8_t playLevel(flow_level_t *level, uint8_t status) {
     uint8_t dim = level->dim;
     kb_key_t key;
     uint16_t movesMade = 0;
-    uint16_t keyCounter;
+    uint16_t keyCounter, keyDelay;
     char text[20];
     pipeComplete = 0;
     flowsComplete = 0;
@@ -65,6 +65,7 @@ uint8_t playLevel(flow_level_t *level, uint8_t status) {
     while(kb_AnyKey());
     
     // game loop:
+    keyDelay = 2 * KEY_REPEAT_DELAY;
     exit = 0;
     
     for (;;) {
@@ -93,7 +94,12 @@ uint8_t playLevel(flow_level_t *level, uint8_t status) {
         do {
             kb_Scan();
             ++keyCounter;
-        } while ((kb_Data[7] && keyCounter < KEY_REPEAT_DELAY) || kb_Data[1] || kb_Data[6]);
+        } while ((kb_Data[7] && keyCounter < keyDelay) || kb_Data[1] || kb_Data[6]);
+        if (keyCounter < keyDelay) {
+            keyDelay = 2 * KEY_REPEAT_DELAY;
+        } else {
+            keyDelay = KEY_REPEAT_DELAY;
+        }
         
         if (exit) {
             break;
