@@ -4,7 +4,7 @@ In FlowCE, the goal is to connect all of the nodes of like color, while filling 
 
 ### Installation
 
-To use FlowCE, you will need to install the CE C Libraries on your calculator. If you do not already have them installed, they can downloaded from tiny.cc/clibs. Please transfer all four .8xv to your calculator. After sending the C Libraries, transfer FlowCE.8cg to your calculator using TI Connect CE. This group contains all of the files necessary to play FlowCE.
+To use FlowCE, you will need to install the CE C Libraries on your calculator. If you do not already have them installed, they can downloaded from tiny.cc/clibs. Please transfer all four .8xv files to your calculator. After sending the C Libraries, transfer FlowCE.8cg to your calculator using TI Connect CE. This group contains all of the files necessary to play FlowCE.
 
 ### Use
 

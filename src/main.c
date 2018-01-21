@@ -73,16 +73,16 @@ start:
                     break;
             }
             switch (selection) {
-                case 0:
+                case 0: // Next level
                     ++levelNum;
                     break;
-                case 1:
+                case 1: // Try Again
                     // play the level again
                     break;
-                case 2:
+                case 2: // Select Level
                     levelNum = selectLevel(selected, progress, levelNum);
                     break;
-                case 3:
+                default: // Quit
                     levelNum = -2;
                     break;
             }
@@ -216,7 +216,11 @@ uint8_t endMenu(char *title, char **options, uint8_t num, uint8_t mask) {
                         
         }
         
-    } while (kb_Data[6] != kb_Enter && kb_Data[1] != kb_2nd);
+    } while (kb_Data[6] != kb_Enter && kb_Data[1] != kb_2nd && kb_Data[6] != kb_Clear);
+    
+    if (kb_Data[6] == kb_Clear) {
+        return 255;
+    }
     
     for (i = 0; i <= selection; ++i) {
         if (!(mask & (0x1 << i))) {
