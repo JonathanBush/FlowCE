@@ -30,4 +30,5 @@ GFXDIR ?= src/gfx
 
 USE_FLASH_FUNCTIONS ?= YES
 
-include $(CEDEV)/include/.makefile
+#include $(CEDEV)/include/.makefile
+include $(shell cedev-config --makefile)

@@ -1,45 +1,46 @@
 #include "main.h"
 #include "progress.h"
 
-const char zeroID[10] = {0,0,0,0,0,0,0,0,0,0};
+const char zeroID[8] = {0,0,0,0,0,0,0,0};
 
 void saveProgress(flow_pack_t *pack, uint8_t *progress) {
     ti_var_t saveData;
-    char *varName = "FLOWDATA";
+    char *varName = "FLOWDATA";  // name of the progress data AppVar
     uint16_t bits = 2 * pack->numLevels;
     uint8_t length = 1 + ((bits - 1) / 8);
-    uint8_t *buffer = calloc(length, sizeof(uint8_t));
+    uint8_t *buffer = calloc(length, sizeof(uint8_t));  // save data to be written for this pack
     uint16_t i;
     uint8_t offset;
     char packVarName[9];
-    size_t chunks;
-    char *ptr = (char*)os_GetSystemStats();
+    //size_t chunks;
+    const system_info_t *sys_info = os_GetSystemInfo();
     
     saveData = ti_Open(varName, "r+");
     if (!saveData) {
         saveData = ti_Open(varName, "a+");
         dbg_sprintf(dbgout, "Opened for appending");
     }
-    
+
+    // the completion status of each level is represented by two bits
     for (i = 0; i < bits; i += 2) {
         buffer[i / 8] |= (progress[i / 2] << (i % 8));
     }
     
-    dbg_sprintf(dbgout, "Saving data for %s", pack->appvarName);
-    //if (memcmp(zeroID, &ptr[28], 10)) {
-        ti_Write(&ptr[28], 1, 10, saveData); // write the ID
-    //}
+    dbg_sprintf(dbgout, "Saving data for %s\n", pack->appvarName);
+    ti_Write(&sys_info->calcid, 1, 8, saveData); // write the ID
+    ti_Write(zeroID, 1, 2, saveData);  // maintain compatability with previous version
+
     offset = 0;
     for (;;) {
-        chunks = ti_Read(packVarName, 1, 9, saveData);
-        if (ti_Tell(saveData) >= ti_GetSize(saveData)) {
+        if (ti_Tell(saveData) >= ti_GetSize(saveData)) {  // reached end of AppVar
             // append
-            ti_Seek(-9, SEEK_CUR, saveData);
             dbg_sprintf(dbgout, "save append\n");
             ti_Write(pack->appvarName, 1, 9, saveData);
-            ti_Write(&length, 1, 1, saveData);
+            ti_Write(&length, 1, 1, saveData);  // length of progress buffer
             break;
-        } else if (strcmp(pack->appvarName, packVarName)) {
+        }
+        ti_Read(packVarName, 1, 9, saveData);
+        if (strcmp(pack->appvarName, packVarName)) {  // not equal
             // seek to next
             dbg_sprintf(dbgout, "save seek\n");
             ti_Read(&offset, 1, 1, saveData);
@@ -74,14 +75,14 @@ uint8_t *loadProgress(flow_pack_t *pack) {
         return progress;
     } else {
         char *saveID = (char*)ti_GetDataPtr(saveData);
-        char *ptr = (char*)os_GetSystemStats();
-        //ti_Read(&saveID, 1, 10, saveData);
-        if (memcmp(&ptr[28], saveID, 10) && memcmp(zeroID, saveID, 10) && memcmp(&ptr[28], zeroID, 10)) {
+        const system_info_t *sys_info = os_GetSystemInfo();
+        if (memcmp(&sys_info->calcid, saveID, 8) && memcmp(zeroID, saveID, 8) && memcmp(&sys_info->calcid, zeroID, 8)) {
             ti_Delete(varName);
+            dbg_sprintf(dbgout, "Deleted FLOWDATA\n");
             return progress;
         }
     }
-    offset = 10;
+    offset = 10;  // skip initial 10 bytes - calcid and 0x0000
     do {
         ti_Seek(offset, SEEK_CUR, saveData);
         ti_Read(packVarName, 1, 9, saveData);
